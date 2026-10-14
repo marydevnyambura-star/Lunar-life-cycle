@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Reusable Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.uid == userId
+        && data.email is string
+        && data.email.size() <= 256;
+    }
+
+    function isValidUserSettings(data, userId) {
+      return data.userId == userId
+        && data.avgCycleLength is number
+        && data.avgCycleLength >= 15
+        && data.avgCycleLength <= 60
+        && data.avgPeriodDuration is number
+        && data.avgPeriodDuration >= 1
+        && data.avgPeriodDuration <= 20;
+    }
+
+    function isValidCycleRecord(data, userId) {
+      return data.userId == userId
+        && data.startDate is string
+        && data.startDate.size() <= 10;
+    }
+
+    function isValidDailyLog(data, userId) {
+      return data.userId == userId
+        && data.date is string
+        && data.date.size() <= 10
+        && data.isPeriod is bool;
+    }
+
+    // 3. User Private Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Blanket enumeration of user accounts is strictly prohibited
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+
+      // User Settings Subcollection
+      match /settings/{settingId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidUserSettings(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // User Cycle History Records Subcollection
+      match /cycles/{cycleId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(cycleId) && isValidCycleRecord(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // User Daily Logs & Symptoms Subcollection
+      match /logs/{logDate} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidDailyLog(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

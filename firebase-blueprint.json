@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing authenticated identity details and tracking preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "Menstrual cycle parameters and privacy preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "avgCycleLength": { "type": "number" },
+        "avgPeriodDuration": { "type": "number" },
+        "lutealLength": { "type": "number" },
+        "tempUnit": { "type": "string", "enum": ["C", "F"] },
+        "weightUnit": { "type": "string", "enum": ["kg", "lbs"] },
+        "pillReminderEnabled": { "type": "boolean" },
+        "pillReminderTime": { "type": "string", "maxLength": 10 },
+        "privacyMode": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "avgCycleLength", "avgPeriodDuration"]
+    },
+    "CycleRecord": {
+      "title": "CycleRecord",
+      "description": "Menstrual cycle historical record belonging to an individual user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "startDate": { "type": "string", "maxLength": 10 },
+        "endDate": { "type": "string", "maxLength": 10 },
+        "cycleEndDate": { "type": "string", "maxLength": 10 },
+        "cycleLength": { "type": "number" },
+        "periodDuration": { "type": "number" },
+        "isOngoing": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "startDate"]
+    },
+    "DailyLog": {
+      "title": "DailyLog",
+      "description": "Daily symptoms, flow, vitals, and journal entry for a specific calendar date.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 10 },
+        "isPeriod": { "type": "boolean" },
+        "flow": { "type": "string", "enum": ["none", "spotting", "light", "medium", "heavy"] },
+        "symptoms": { "type": "array" },
+        "moods": { "type": "array" },
+        "cervicalMucus": { "type": "string", "maxLength": 32 },
+        "temperature": { "type": "number" },
+        "weight": { "type": "number" },
+        "waterGlasses": { "type": "number" },
+        "sleepHours": { "type": "number" },
+        "pillTaken": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 2048 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "date", "isPeriod"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private profile document for each authenticated user."
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "UserSettings",
+      "description": "Cycle tracking settings and privacy configuration."
+    },
+    "/users/{userId}/cycles/{cycleId}": {
+      "schema": "CycleRecord",
+      "description": "Individual user's cycle records and period duration history."
+    },
+    "/users/{userId}/logs/{logDate}": {
+      "schema": "DailyLog",
+      "description": "Daily logged symptoms, moods, vitals, and flows."
+    }
+  }
+}

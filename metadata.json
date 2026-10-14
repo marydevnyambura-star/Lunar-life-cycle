@@ -1,0 +1,6 @@
+{
+  "name": "LumaCycle - Period & Menstrual Health Tracker",
+  "description": "A privacy-first, beautifully designed menstrual cycle, ovulation, symptom, and fertility tracker with phase-based health insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
