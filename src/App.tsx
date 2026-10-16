@@ -30,20 +30,22 @@ import { CycleHistoryView } from './components/CycleHistoryView';
 import { MyProfileView } from './components/MyProfileView';
 import { SettingsAndPrivacy } from './components/SettingsAndPrivacy';
 import { DailyLoggerModal } from './components/DailyLoggerModal';
+import { RecordPeriodStartModal } from './components/RecordPeriodStartModal';
 import { PinLockModal } from './components/PinLockModal';
 import { MobileTabBar } from './components/MobileTabBar';
 import {
   getInitialSeedData,
   parseDateStr,
+  formatDateStr,
   diffDays,
   getCurrentCycleStatus
 } from './utils/cycleCalculations';
-import { UserSettings, CycleRecord, DailyLog } from './types';
-import { Sparkles, ShieldCheck } from 'lucide-react';
+import { UserSettings, CycleRecord, DailyLog, FlowIntensity, Symptom, Mood } from './types';
+import { Sparkles, CheckCircle2, Heart } from 'lucide-react';
 
 export default function App() {
-  // Anchored reference date (2026-10-14)
-  const [currentDateStr] = useState<string>('2026-10-14');
+  // Aligned with today: 16th October 2026
+  const [currentDateStr] = useState<string>('2026-10-16');
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -61,9 +63,20 @@ export default function App() {
   // Passcode Lock state (if enabled in settings)
   const [isLocked, setIsLocked] = useState<boolean>(false);
 
-  // Modal Logger state
+  // Modal Logger states
   const [loggerModalOpen, setLoggerModalOpen] = useState<boolean>(false);
   const [loggerModalDate, setLoggerModalDate] = useState<string>(currentDateStr);
+  const [recordPeriodStartModalOpen, setRecordPeriodStartModalOpen] = useState<boolean>(false);
+
+  // Lively Feedback Toast
+  const [livelyToast, setLivelyToast] = useState<{ message: string; sub?: string } | null>(null);
+
+  const showLivelyToast = (message: string, sub?: string) => {
+    setLivelyToast({ message, sub });
+    setTimeout(() => {
+      setLivelyToast(null);
+    }, 3800);
+  };
 
   // Listen to Firebase Auth state
   useEffect(() => {
@@ -108,7 +121,6 @@ export default function App() {
       // If this is a brand new account with 0 cycles, seed initial starter cycle so they have an active dashboard
       if (userCycles.length === 0 && Object.keys(userLogs).length === 0) {
         const seed = getInitialSeedData();
-        // Persist seed data to Firestore for this new user
         for (const c of seed.cycles) {
           await saveUserCycleToDb(user.uid, c);
         }
@@ -132,7 +144,6 @@ export default function App() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      // Ensure all local state is wiped cleanly
       setCurrentUser(null);
       setCycles([]);
       setLogs({});
@@ -148,6 +159,7 @@ export default function App() {
     setCycles([]);
     setLogs({});
     setActiveTab('today');
+    showLivelyToast('All records cleared', 'Your tracking data has been safely removed.');
   };
 
   // Current Cycle Calculation
@@ -159,20 +171,123 @@ export default function App() {
     setLoggerModalOpen(true);
   };
 
-  // Save Daily Log (Writes to Firestore & in-memory state)
+  // Record Period Start Handler (Explicitly records when period started)
+  const handleSavePeriodStart = async (
+    startDate: string,
+    flow: FlowIntensity,
+    duration: number,
+    symptoms: Symptom[]
+  ) => {
+    if (!currentUser) return;
+
+    // 1. Look for any existing cycle that starts on this exact date
+    const existingIndex = cycles.findIndex(c => c.startDate === startDate);
+
+    let updatedCycles = [...cycles];
+    let newCycleId = `c-${Date.now()}`;
+
+    if (existingIndex >= 0) {
+      // Update existing cycle record
+      const existing = updatedCycles[existingIndex];
+      const updatedCycle: CycleRecord = {
+        ...existing,
+        periodDuration: duration,
+        isOngoing: true
+      };
+      updatedCycles[existingIndex] = updatedCycle;
+      await saveUserCycleToDb(currentUser.uid, updatedCycle);
+    } else {
+      // 2. Close any previous ongoing cycle by setting its cycleEndDate
+      const sorted = [...updatedCycles].sort((a, b) => a.startDate.localeCompare(b.startDate));
+      const newStartDateObj = parseDateStr(startDate);
+
+      for (let i = 0; i < sorted.length; i++) {
+        const c = sorted[i];
+        const cStart = parseDateStr(c.startDate);
+        if (diffDays(newStartDateObj, cStart) > 0 && c.isOngoing) {
+          c.isOngoing = false;
+          c.cycleEndDate = startDate;
+          c.cycleLength = diffDays(newStartDateObj, cStart);
+          await saveUserCycleToDb(currentUser.uid, c);
+        }
+      }
+
+      // 3. Create fresh new ongoing cycle starting on this date
+      const newRecord: CycleRecord = {
+        id: newCycleId,
+        startDate,
+        periodDuration: duration,
+        isOngoing: true
+      };
+      updatedCycles = [newRecord, ...updatedCycles].sort((a, b) => b.startDate.localeCompare(a.startDate));
+      await saveUserCycleToDb(currentUser.uid, newRecord);
+    }
+
+    setCycles(updatedCycles);
+
+    // 4. Create/update the daily log on this starting date
+    const existingLog = logs[startDate];
+    const updatedLog: DailyLog = {
+      ...(existingLog || {
+        date: startDate,
+        moods: []
+      }),
+      isPeriod: true,
+      flow: flow || 'medium',
+      symptoms: Array.from(new Set([...(existingLog?.symptoms || []), ...symptoms]))
+    };
+
+    setLogs(prev => ({
+      ...prev,
+      [startDate]: updatedLog
+    }));
+
+    await saveUserDailyLogToDb(currentUser.uid, updatedLog);
+
+    // If start date is today, ensure today is active bleed
+    if (startDate === currentDateStr) {
+      setLogs(prev => ({ ...prev, [currentDateStr]: updatedLog }));
+    }
+
+    showLivelyToast(
+      `Period start recorded: ${startDate}`,
+      'Cycle Day 1 has begun! Predictions and fertile window recalibrated.'
+    );
+  };
+
+  // Quick Mood Tap
+  const handleQuickMoodSelect = async (mood: Mood) => {
+    if (!currentUser) return;
+    const todayLog = logs[currentDateStr];
+    const existingMoods = todayLog?.moods || [];
+    const newMoods = existingMoods.includes(mood)
+      ? existingMoods.filter(m => m !== mood)
+      : [...existingMoods, mood];
+
+    const updatedLog: DailyLog = {
+      ...(todayLog || {
+        date: currentDateStr,
+        isPeriod: false,
+        symptoms: []
+      }),
+      moods: newMoods
+    };
+
+    setLogs(prev => ({ ...prev, [currentDateStr]: updatedLog }));
+    await saveUserDailyLogToDb(currentUser.uid, updatedLog);
+  };
+
+  // Save Daily Log
   const handleSaveDailyLog = async (newLog: DailyLog) => {
     if (!currentUser) return;
 
-    // Update in-memory state
     setLogs(prev => ({
       ...prev,
       [newLog.date]: newLog
     }));
 
-    // Persist to user's isolated Firestore collection
     await saveUserDailyLogToDb(currentUser.uid, newLog);
 
-    // If marked as period, check if we need to update/create a cycle record
     if (newLog.isPeriod) {
       const existingCycle = cycles.find(c => {
         const start = parseDateStr(c.startDate);
@@ -192,6 +307,8 @@ export default function App() {
         await saveUserCycleToDb(currentUser.uid, newRecord);
       }
     }
+
+    showLivelyToast('Daily log saved', 'Your symptoms and vitals have been recorded.');
   };
 
   // Quick Toggle Period Bleed for Today
@@ -202,7 +319,6 @@ export default function App() {
     const isCurrentlyBleeding = !!todayLog?.isPeriod;
 
     if (isCurrentlyBleeding) {
-      // Toggle off bleed
       const updatedLog: DailyLog = {
         ...(todayLog || {
           date: currentDateStr,
@@ -214,8 +330,8 @@ export default function App() {
       };
       setLogs(prev => ({ ...prev, [currentDateStr]: updatedLog }));
       await saveUserDailyLogToDb(currentUser.uid, updatedLog);
+      showLivelyToast('Period marked as ended', 'Entering your follicular phase.');
     } else {
-      // Toggle on bleed
       const updatedLog: DailyLog = {
         ...(todayLog || {
           date: currentDateStr,
@@ -228,7 +344,6 @@ export default function App() {
       setLogs(prev => ({ ...prev, [currentDateStr]: updatedLog }));
       await saveUserDailyLogToDb(currentUser.uid, updatedLog);
 
-      // Ensure cycle record exists for this start
       const hasRecentCycle = cycles.some(c => {
         const diff = diffDays(parseDateStr(currentDateStr), parseDateStr(c.startDate));
         return diff >= 0 && diff <= 10;
@@ -244,6 +359,8 @@ export default function App() {
         setCycles(prev => [newRecord, ...prev]);
         await saveUserCycleToDb(currentUser.uid, newRecord);
       }
+
+      showLivelyToast('Period started today', 'Cycle Day 1 begun!');
     }
   };
 
@@ -307,6 +424,7 @@ export default function App() {
 
     await saveUserCycleToDb(currentUser.uid, newRecord);
     setCycles(updated.sort((a, b) => b.startDate.localeCompare(a.startDate)));
+    showLivelyToast('Past period added', `Recorded start date ${startDate}`);
   };
 
   // Delete Cycle Record
@@ -372,18 +490,17 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center p-4">
-        <div className="w-10 h-10 rounded-full bg-rose-500 animate-pulse flex items-center justify-center text-white mb-3">
-          <Sparkles className="w-5 h-5" />
+        <div className="w-12 h-12 rounded-3xl bg-rose-500 animate-pulse flex items-center justify-center text-white mb-3 shadow-md shadow-rose-200">
+          <Sparkles className="w-6 h-6" />
         </div>
-        <p className="text-xs font-medium text-stone-500">
-          Initializing secure environment...
+        <p className="text-xs font-semibold text-stone-600">
+          Preparing your private cycle sanctuary...
         </p>
       </div>
     );
   }
 
   // 2. Unauthenticated Gate: Welcoming Landing Page
-  // Mandatory Requirement: "If the visitor is not authenticated, do not allow them to record periods, enter symptoms, view cycle history, or access a personal dashboard."
   if (!currentUser) {
     return <AuthLanding onAuthSuccess={() => {}} />;
   }
@@ -413,9 +530,22 @@ export default function App() {
 
       {/* Loading overlay for database sync */}
       {dataLoading && (
-        <div className="bg-rose-50 border-b border-rose-200 py-1 px-4 text-center text-xs text-rose-700 flex items-center justify-center gap-2">
+        <div className="bg-rose-50 border-b border-rose-200 py-1.5 px-4 text-center text-xs text-rose-700 flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 animate-spin text-rose-500" />
           <span>Synchronizing your private health records...</span>
+        </div>
+      )}
+
+      {/* Lively Toast Notification */}
+      {livelyToast && (
+        <div className="fixed top-20 right-4 sm:right-8 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-start gap-3 border border-stone-800 animate-fade-in max-w-sm">
+          <div className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mt-0.5 shrink-0">
+            <Heart className="w-3.5 h-3.5 fill-rose-500" />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-white">{livelyToast.message}</p>
+            {livelyToast.sub && <p className="text-stone-300 text-[11px] mt-0.5">{livelyToast.sub}</p>}
+          </div>
         </div>
       )}
 
@@ -428,9 +558,11 @@ export default function App() {
             logs={logs}
             settings={settings}
             onOpenLog={handleOpenLogger}
+            onOpenRecordPeriodStart={() => setRecordPeriodStartModalOpen(true)}
             onTogglePeriodBleedToday={handleTogglePeriodBleedToday}
             onTogglePillToday={handleTogglePillToday}
             onUpdateWaterToday={handleUpdateWaterToday}
+            onQuickMoodSelect={handleQuickMoodSelect}
             onNavigateToTab={setActiveTab}
           />
         )}
@@ -484,6 +616,15 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Record Period Start Modal */}
+      <RecordPeriodStartModal
+        isOpen={recordPeriodStartModalOpen}
+        onClose={() => setRecordPeriodStartModalOpen(false)}
+        currentDateStr={currentDateStr}
+        defaultDuration={settings.avgPeriodDuration}
+        onSavePeriodStart={handleSavePeriodStart}
+      />
 
       {/* Daily Logger Modal Bottom Sheet / Center Modal */}
       <DailyLoggerModal

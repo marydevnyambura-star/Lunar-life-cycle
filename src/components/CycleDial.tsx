@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, Sparkles, Heart, Activity } from 'lucide-react';
+import { Droplets, Sparkles, Heart, Activity, Calendar, ArrowRight } from 'lucide-react';
 import { CyclePhase, FlowIntensity } from '../types';
 
 interface CycleDialProps {
@@ -14,6 +14,7 @@ interface CycleDialProps {
   flowToday?: FlowIntensity;
   privacyMode: boolean;
   onOpenLog: () => void;
+  onOpenRecordPeriodStart: () => void;
   onTogglePeriodQuick: () => void;
 }
 
@@ -29,11 +30,12 @@ export const CycleDial: React.FC<CycleDialProps> = ({
   flowToday,
   privacyMode,
   onOpenLog,
+  onOpenRecordPeriodStart,
   onTogglePeriodQuick
 }) => {
   // SVG dimensions
   const size = 320;
-  const strokeWidth = 20;
+  const strokeWidth = 22;
   const center = size / 2;
   const radius = center - strokeWidth;
   const circumference = 2 * Math.PI * radius;
@@ -45,69 +47,101 @@ export const CycleDial: React.FC<CycleDialProps> = ({
   const indicatorX = center + radius * Math.cos(currentAngleRad);
   const indicatorY = center + radius * Math.sin(currentAngleRad);
 
-  // Phase color definitions
-  const phaseColors: Record<CyclePhase, { stroke: string; bg: string; text: string; label: string }> = {
+  // Phase color definitions & lively ambience
+  const phaseThemes: Record<CyclePhase, {
+    stroke: string;
+    bgGlow: string;
+    text: string;
+    badgeBg: string;
+    label: string;
+    vibe: string;
+    icon: string;
+  }> = {
     menstrual: {
-      stroke: '#F43F5E', // rose-500
-      bg: 'bg-rose-50 text-rose-700 border-rose-200',
+      stroke: '#F43F5E',
+      bgGlow: 'from-rose-500/10 via-pink-500/5 to-transparent',
       text: 'text-rose-600',
-      label: privacyMode ? 'Phase 1 · Bleed' : 'Menstrual Phase'
+      badgeBg: 'bg-rose-100 text-rose-700 border-rose-200',
+      label: privacyMode ? 'Phase 1 · Flow' : 'Menstrual Phase',
+      vibe: 'Rest & Replenish',
+      icon: '🩸'
     },
     follicular: {
-      stroke: '#8B5CF6', // violet-500
-      bg: 'bg-violet-50 text-violet-700 border-violet-200',
+      stroke: '#8B5CF6',
+      bgGlow: 'from-violet-500/10 via-indigo-500/5 to-transparent',
       text: 'text-violet-600',
-      label: privacyMode ? 'Phase 2 · Pre-Peak' : 'Follicular Phase'
+      badgeBg: 'bg-violet-100 text-violet-700 border-violet-200',
+      label: privacyMode ? 'Phase 2 · Rising' : 'Follicular Phase',
+      vibe: 'Vitality & Creative Spark',
+      icon: '🌱'
     },
     ovulation: {
-      stroke: '#F59E0B', // amber-500
-      bg: 'bg-amber-50 text-amber-700 border-amber-200',
+      stroke: '#F59E0B',
+      bgGlow: 'from-amber-500/15 via-orange-500/5 to-transparent',
       text: 'text-amber-600',
-      label: privacyMode ? 'Phase 3 · Peak Window' : 'Ovulatory Phase'
+      badgeBg: 'bg-amber-100 text-amber-800 border-amber-200',
+      label: privacyMode ? 'Phase 3 · Peak' : 'Ovulatory Phase',
+      vibe: 'Peak Confidence & Fertility',
+      icon: '✨'
     },
     luteal: {
-      stroke: '#0D9488', // teal-600
-      bg: 'bg-teal-50 text-teal-700 border-teal-200',
+      stroke: '#0D9488',
+      bgGlow: 'from-teal-500/10 via-emerald-500/5 to-transparent',
       text: 'text-teal-600',
-      label: privacyMode ? 'Phase 4 · Post-Peak' : 'Luteal Phase'
+      badgeBg: 'bg-teal-100 text-teal-800 border-teal-200',
+      label: privacyMode ? 'Phase 4 · Grounding' : 'Luteal Phase',
+      vibe: 'Focus, Calm & Cozy',
+      icon: '🌿'
     }
   };
 
-  const currentTheme = phaseColors[currentPhase];
+  const currentTheme = phaseThemes[currentPhase];
 
   // Arc calculation helpers
   const getArc = (startDay: number, endDay: number) => {
     const fractionStart = (startDay - 1) / totalCycleDays;
     const fractionEnd = endDay / totalCycleDays;
     const length = (fractionEnd - fractionStart) * circumference;
-    const offset = -fractionStart * circumference + circumference * 0.25; // rotate to 12 o'clock
+    const offset = -fractionStart * circumference + circumference * 0.25;
     return {
       strokeDasharray: `${length} ${circumference - length}`,
       strokeDashoffset: -offset
     };
   };
 
-  // 4 Phase arcs
   const menstrualArc = getArc(1, periodDuration);
   const follicularArc = getArc(periodDuration + 1, Math.max(periodDuration + 1, ovulationCycleDay - 3));
   const fertileArc = getArc(Math.max(periodDuration + 1, ovulationCycleDay - 2), Math.min(totalCycleDays, ovulationCycleDay + 1));
   const lutealArc = getArc(Math.min(totalCycleDays, ovulationCycleDay + 2), totalCycleDays);
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-stone-200 shadow-sm max-w-lg mx-auto w-full">
+    <div className="relative flex flex-col items-center justify-center p-6 sm:p-7 bg-white rounded-3xl border border-stone-200 shadow-sm max-w-lg mx-auto w-full overflow-hidden transition-all duration-300 hover:shadow-md">
+      {/* Dynamic lively ambient radial backdrop */}
+      <div className={`absolute inset-0 bg-radial ${currentTheme.bgGlow} pointer-events-none transition-colors duration-700`} />
+
+      {/* Top Lively Phase Chip */}
+      <div className="relative z-10 mb-2 flex items-center gap-2">
+        <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 shadow-xs ${currentTheme.badgeBg}`}>
+          <span>{currentTheme.icon}</span>
+          <span>{currentTheme.label}</span>
+          <span className="opacity-40">·</span>
+          <span className="font-medium text-[11px] opacity-90">{currentTheme.vibe}</span>
+        </span>
+      </div>
+
       {/* SVG Cycle Wheel */}
-      <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] flex items-center justify-center">
+      <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] flex items-center justify-center my-1">
         <svg
           viewBox={`0 0 ${size} ${size}`}
-          className="w-full h-full transform -rotate-90 origin-center"
+          className="w-full h-full transform -rotate-90 origin-center filter drop-shadow-xs"
         >
-          {/* Background track */}
+          {/* Subtle outer track glow */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="#F5F5F0"
+            stroke="#F1EFEA"
             strokeWidth={strokeWidth}
           />
 
@@ -117,7 +151,7 @@ export const CycleDial: React.FC<CycleDialProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#FDA4AF" // rose-300
+            stroke="#FB7185" // rose-400
             strokeWidth={strokeWidth}
             strokeDasharray={menstrualArc.strokeDasharray}
             strokeDashoffset={menstrualArc.strokeDashoffset}
@@ -130,19 +164,19 @@ export const CycleDial: React.FC<CycleDialProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#DDD6FE" // violet-200
+            stroke="#C4B5FD" // violet-300
             strokeWidth={strokeWidth}
             strokeDasharray={follicularArc.strokeDasharray}
             strokeDashoffset={follicularArc.strokeDashoffset}
           />
 
-          {/* Fertile / Ovulation Arc (Amber) */}
+          {/* Fertile / Ovulation Arc (Amber Gold) */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="#FDE68A" // amber-200
+            stroke="#FBBF24" // amber-400
             strokeWidth={strokeWidth}
             strokeDasharray={fertileArc.strokeDasharray}
             strokeDashoffset={fertileArc.strokeDashoffset}
@@ -154,81 +188,96 @@ export const CycleDial: React.FC<CycleDialProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#99F6E4" // teal-200
+            stroke="#5EEAD4" // teal-300
             strokeWidth={strokeWidth}
             strokeDasharray={lutealArc.strokeDasharray}
             strokeDashoffset={lutealArc.strokeDashoffset}
           />
 
-          {/* Active progress indicator bead */}
+          {/* Active progress indicator bead with lively glow ring */}
           <circle
             cx={indicatorX}
             cy={indicatorY}
-            r={10}
+            r={13}
+            fill={currentTheme.stroke}
+            opacity={0.3}
+            className="animate-ping origin-center"
+          />
+          <circle
+            cx={indicatorX}
+            cy={indicatorY}
+            r={11}
             fill={currentTheme.stroke}
             stroke="#FFFFFF"
-            strokeWidth={3}
-            className="filter drop-shadow-sm transition-all duration-300"
+            strokeWidth={3.5}
+            className="filter drop-shadow-md transition-all duration-300"
           />
         </svg>
 
         {/* Center Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
-          <span className="text-xs font-semibold tracking-wider uppercase text-stone-600 mb-1">
-            {currentTheme.label}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+          <span className="text-[11px] font-bold tracking-wider uppercase text-stone-600 mb-0.5">
+            CYCLE TRACKER
           </span>
 
-          <div className="flex items-baseline justify-center gap-1">
-            <span className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-stone-900 tabular-nums">
+          <div className="flex items-baseline justify-center gap-1.5">
+            <span className="font-display text-4xl sm:text-5xl font-black tracking-tight text-stone-900 tabular-nums">
               Day {cycleDay}
             </span>
           </div>
 
-          <p className="text-xs text-stone-600 mt-1 max-w-[190px]">
+          <p className="text-xs font-semibold text-stone-700 mt-1 max-w-[200px]">
             {isPeriodToday
               ? (privacyMode ? 'Bleed active today' : `Period: Day ${cycleDay}`)
               : daysUntilNextPeriod === 0
-              ? 'Next cycle due today'
+              ? 'Next period due today!'
               : `Next period in ${daysUntilNextPeriod} days`}
           </p>
 
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-stone-600">
-            <Heart className="w-3.5 h-3.5 text-rose-500" />
-            <span>Chance of conception: </span>
-            <span className="font-semibold text-stone-800">{conceptionChance}</span>
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 border border-stone-200/80 text-[11px] text-stone-700 shadow-2xs">
+            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-100" />
+            <span>Conception chance: </span>
+            <span className="font-bold text-stone-900">{conceptionChance}</span>
           </div>
         </div>
       </div>
 
-      {/* Quick Action Bar under Dial */}
-      <div className="mt-6 w-full flex flex-col sm:flex-row items-center gap-3">
+      {/* Record Period Start Quick CTA Card */}
+      <div className="w-full mt-5 space-y-2.5">
         <button
-          onClick={onTogglePeriodQuick}
-          className={`w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium border flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-            isPeriodToday
-              ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
-              : 'bg-white text-stone-700 border-stone-300 hover:border-rose-400 hover:text-rose-600'
-          }`}
+          onClick={onOpenRecordPeriodStart}
+          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-pink-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-rose-200/80 hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
         >
-          <Droplets className={`w-4 h-4 ${isPeriodToday ? 'text-rose-600 fill-rose-600' : 'text-stone-600'}`} />
-          <span>
-            {isPeriodToday
-              ? (privacyMode ? 'Bleed Logged Today (Tap to End)' : 'Period Started (Tap to End)')
-              : (privacyMode ? 'Log Bleed Today' : 'Log Period Started Today')}
-          </span>
+          <Droplets className="w-4 h-4 fill-white" />
+          <span>Record When Period Started</span>
+          <ArrowRight className="w-4 h-4 ml-1 opacity-80" />
         </button>
 
-        <button
-          onClick={onOpenLog}
-          className="w-full sm:w-auto shrink-0 py-2.5 px-5 rounded-xl text-xs sm:text-sm font-medium bg-stone-900 text-white hover:bg-stone-800 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
-        >
-          <Activity className="w-4 h-4" />
-          <span>Log Details</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onTogglePeriodQuick}
+            className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
+              isPeriodToday
+                ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100 hover:text-stone-900'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>{isPeriodToday ? 'Mark Bleed Ended' : 'Quick Today Flow'}</span>
+          </button>
+
+          <button
+            onClick={onOpenLog}
+            className="py-2 px-3 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-2xs"
+          >
+            <Activity className="w-3.5 h-3.5 text-rose-400" />
+            <span>Log Symptoms</span>
+          </button>
+        </div>
       </div>
 
-      {/* Phase legend ticks */}
-      <div className="mt-5 w-full pt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-600 px-1">
+      {/* Lively Phase Ticks */}
+      <div className="mt-5 w-full pt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-600 px-1 font-medium">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
           <span>Menstrual</span>

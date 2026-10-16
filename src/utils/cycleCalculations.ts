@@ -333,8 +333,8 @@ export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: User
 }
 
 /**
- * Provides default initial seed data anchored around the current reference date (2026-10-14).
- * Today (Oct 14, 2026) is Day 3 of the menstrual cycle, started Oct 12, 2026.
+ * Provides default initial seed data anchored around the current reference date (2026-10-16).
+ * Today (Oct 16, 2026) is Day 5 of the current menstrual cycle, started Oct 12, 2026.
  */
 export function getInitialSeedData() {
   const settings: UserSettings = {
@@ -413,6 +413,32 @@ export function getInitialSeedData() {
       temperature: 36.4,
       weight: 58.5,
       notes: 'Feeling noticeably more balanced today.'
+    },
+    '2026-10-15': {
+      date: '2026-10-15',
+      isPeriod: true,
+      flow: 'light',
+      symptoms: [],
+      moods: ['happy', 'calm'],
+      waterGlasses: 8,
+      sleepHours: 8,
+      pillTaken: true,
+      temperature: 36.5,
+      weight: 58.4,
+      notes: 'Flow tapering down nicely, energy returning.'
+    },
+    '2026-10-16': {
+      date: '2026-10-16',
+      isPeriod: true,
+      flow: 'spotting',
+      symptoms: [],
+      moods: ['energetic', 'happy'],
+      waterGlasses: 7,
+      sleepHours: 8.5,
+      pillTaken: true,
+      temperature: 36.5,
+      weight: 58.2,
+      notes: 'Final spotting today (Day 5). Feeling refreshed and motivated!'
     }
   };
 

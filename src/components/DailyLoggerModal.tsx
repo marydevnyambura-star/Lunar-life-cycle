@@ -217,7 +217,7 @@ export const DailyLoggerModal: React.FC<DailyLoggerModalProps> = ({
                       isSelected
                         ? item.id === 'none'
                           ? 'bg-stone-100 border-stone-300 text-stone-800'
-                          : 'bg-rose-50 border-rose-300 text-rose-700 ring-1 ring-rose-400'
+                          : 'bg-rose-50 border-rose-300 text-rose-700 ring-1 ring-rose-400 font-bold'
                         : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
                     }`}
                   >
@@ -225,6 +225,31 @@ export const DailyLoggerModal: React.FC<DailyLoggerModalProps> = ({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Quick check to mark as start of new period cycle */}
+            <div className="p-3 bg-rose-50/70 border border-rose-200/80 rounded-2xl flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-stone-800 block">
+                  Did your period start on this date?
+                </span>
+                <span className="text-[11px] text-stone-500">
+                  Marks this date as Day 1 of your menstrual cycle
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={isPeriod}
+                onChange={e => {
+                  setIsPeriod(e.target.checked);
+                  if (e.target.checked && flow === 'none') {
+                    setFlow('medium');
+                  } else if (!e.target.checked) {
+                    setFlow('none');
+                  }
+                }}
+                className="w-5 h-5 text-rose-600 rounded-md cursor-pointer accent-rose-600"
+              />
             </div>
           </div>
 

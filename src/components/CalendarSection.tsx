@@ -251,13 +251,22 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={() => onOpenLogForDate(selectedDateStr)}
-            className="px-4 py-2 text-xs font-medium text-white bg-stone-900 rounded-xl hover:bg-stone-800 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shrink-0 self-start sm:self-auto"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>{selectedLog ? 'Edit Daily Log' : 'Log Details for Date'}</span>
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => onOpenLogForDate(selectedDateStr)}
+              className="px-4 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-700 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-rose-200 cursor-pointer"
+            >
+              <Droplets className="w-3.5 h-3.5 fill-white" />
+              <span>Record Period on this Date</span>
+            </button>
+            <button
+              onClick={() => onOpenLogForDate(selectedDateStr)}
+              className="px-3.5 py-2 text-xs font-medium text-stone-700 bg-stone-100 rounded-xl hover:bg-stone-200 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-stone-500" />
+              <span>{selectedLog ? 'Edit Details' : 'Add Vitals'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Selected Day Content */}

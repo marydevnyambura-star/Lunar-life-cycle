@@ -118,17 +118,23 @@ export const CycleHistoryView: React.FC<CycleHistoryViewProps> = ({
         </div>
       )}
 
-      {/* Action Bar & Add Past Period */}
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-lg font-bold text-stone-900 font-display">
-          Recorded Periods
-        </h3>
+      {/* Action Bar & Record Period Start Date */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-bold text-stone-900 font-display">
+            Recorded Cycles & Periods
+          </h3>
+          <p className="text-xs text-stone-500">
+            Review your historical period start dates and cycle patterns
+          </p>
+        </div>
+
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-xs"
+          className="px-4 py-2.5 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-2xl transition-all flex items-center gap-2 shadow-sm shadow-rose-200 self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4 text-stone-600" />
-          <span>{showAddForm ? 'Close Form' : 'Log Past Period'}</span>
+          <Plus className="w-4 h-4" />
+          <span>{showAddForm ? 'Close Form' : 'Record Period Start Date'}</span>
         </button>
       </div>
 
