@@ -24,6 +24,39 @@ export function diffDays(d1: Date, d2: Date): number {
   return Math.round((t1 - t2) / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Returns today's date formatted as YYYY-MM-DD in the user's local timezone.
+ */
+export function getLocalTodayStr(): string {
+  const now = new Date();
+  return formatDateStr(now);
+}
+
+/**
+ * Returns ordinal suffix for dates (e.g. 1st, 2nd, 3rd, 21st, 22nd, 23rd, etc.)
+ */
+export function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+/**
+ * Formats a Date object into human readable format: e.g. "Wednesday, 21st October 2026"
+ */
+export function formatDisplayDate(date: Date): string {
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+  const day = date.getDate();
+  const suffix = getOrdinalSuffix(day);
+  const month = date.toLocaleDateString('en-US', { month: 'long' });
+  const year = date.getFullYear();
+  return `${weekday}, ${day}${suffix} ${month} ${year}`;
+}
+
 // Phase details and scientific cycle-syncing guidance
 export const PHASE_GUIDE: Record<CyclePhase, PhaseInfo> = {
   menstrual: {
@@ -113,7 +146,139 @@ export const PHASE_GUIDE: Record<CyclePhase, PhaseInfo> = {
 };
 
 /**
+ * Calculates cycle statistics from recorded cycles.
+ * Uses historical cycles to calculate actual average cycle length between consecutive periods.
+ * If insufficient history exists, falls back to the user's custom settings or default estimate.
+ */
+export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: UserSettings) {
+  const fallbackCycleLen = defaultSettings.avgCycleLength || 28;
+  const fallbackPeriodDur = defaultSettings.avgPeriodDuration || 5;
+
+  if (!cycles || cycles.length === 0) {
+    return {
+      averageCycleLength: fallbackCycleLen,
+      averagePeriodDuration: fallbackPeriodDur,
+      isEmpirical: false,
+      completedCycleCount: 0,
+      regularityScore: 'Default Estimate (Record 2+ periods)',
+      shortestCycle: fallbackCycleLen,
+      longestCycle: fallbackCycleLen,
+      recordedCount: 0,
+      estimateLabel: `Default estimate (${fallbackCycleLen} days · customize in Settings)`
+    };
+  }
+
+  // Cycles with valid positive cycleLength (days from this period start to next period start)
+  const completedCycles = cycles.filter(c => c.cycleLength && c.cycleLength >= 15 && c.cycleLength <= 65);
+  const cycleLengths = completedCycles.map(c => c.cycleLength!);
+  const periodLengths = cycles.filter(c => c.periodDuration && c.periodDuration > 0).map(c => c.periodDuration!);
+
+  const hasEmpiricalHistory = cycleLengths.length >= 1;
+
+  const avgCycle = hasEmpiricalHistory
+    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
+    : fallbackCycleLen;
+
+  const avgPeriod = periodLengths.length > 0
+    ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
+    : fallbackPeriodDur;
+
+  const shortest = cycleLengths.length > 0 ? Math.min(...cycleLengths) : avgCycle;
+  const longest = cycleLengths.length > 0 ? Math.max(...cycleLengths) : avgCycle;
+  const variance = longest - shortest;
+
+  let regularityScore = 'Regular';
+  if (!hasEmpiricalHistory) {
+    regularityScore = 'Need 2+ recorded periods to calculate regularity';
+  } else if (variance <= 2) {
+    regularityScore = 'Very Regular (±1 day)';
+  } else if (variance <= 4) {
+    regularityScore = 'Normal (±2 days)';
+  } else if (variance <= 7) {
+    regularityScore = 'Moderate Variation (±4 days)';
+  } else {
+    regularityScore = 'Irregular Variation';
+  }
+
+  const estimateLabel = hasEmpiricalHistory
+    ? `Calculated from your past ${completedCycles.length} recorded cycle${completedCycles.length > 1 ? 's' : ''} (${avgCycle} days)`
+    : `Custom estimate (${fallbackCycleLen} days · from Settings)`;
+
+  return {
+    averageCycleLength: avgCycle,
+    averagePeriodDuration: avgPeriod,
+    isEmpirical: hasEmpiricalHistory,
+    completedCycleCount: completedCycles.length,
+    regularityScore,
+    shortestCycle: shortest,
+    longestCycle: longest,
+    recordedCount: cycles.length,
+    estimateLabel
+  };
+}
+
+/**
+ * Takes any list of cycle records, sorts chronologically, recalculates cycle length
+ * (number of days between the first day of one period and the first day of the next period),
+ * sets period duration and end dates, and marks ongoing status.
+ */
+export function recalculateAllCycles(
+  cycles: CycleRecord[],
+  defaultAvgPeriodDuration: number = 5
+): CycleRecord[] {
+  if (!cycles || cycles.length === 0) return [];
+
+  // Sort ascending by startDate
+  const ascending = [...cycles].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const todayStr = getLocalTodayStr();
+  const todayObj = parseDateStr(todayStr);
+
+  const processed: CycleRecord[] = [];
+
+  for (let i = 0; i < ascending.length; i++) {
+    const current = { ...ascending[i] };
+    const curStart = parseDateStr(current.startDate);
+    const periodDur = current.periodDuration && current.periodDuration > 0
+      ? current.periodDuration
+      : defaultAvgPeriodDuration;
+    current.periodDuration = periodDur;
+
+    // Calculate endDate if not provided or derive from duration
+    if (!current.endDate) {
+      current.endDate = formatDateStr(addDays(curStart, periodDur - 1));
+    } else {
+      const endObj = parseDateStr(current.endDate);
+      const span = diffDays(endObj, curStart) + 1;
+      if (span > 0) {
+        current.periodDuration = span;
+      }
+    }
+
+    // If there is a subsequent cycle in chronological order:
+    if (i < ascending.length - 1) {
+      const nextStart = parseDateStr(ascending[i + 1].startDate);
+      const cycleLen = diffDays(nextStart, curStart);
+      current.cycleLength = cycleLen > 0 ? cycleLen : undefined;
+      current.cycleEndDate = ascending[i + 1].startDate;
+      current.isOngoing = false;
+    } else {
+      // This is the latest recorded cycle
+      current.cycleLength = undefined;
+      current.cycleEndDate = undefined;
+      const daysSinceStart = diffDays(todayObj, curStart);
+      current.isOngoing = daysSinceStart >= 0 && daysSinceStart < 50;
+    }
+
+    processed.push(current);
+  }
+
+  // Return sorted descending by startDate (latest first)
+  return processed.sort((a, b) => b.startDate.localeCompare(a.startDate));
+}
+
+/**
  * Computes current cycle status relative to reference date (today).
+ * Dynamically uses calculated average cycle length from historical data or user settings.
  */
 export function getCurrentCycleStatus(
   currentDateStr: string,
@@ -121,8 +286,9 @@ export function getCurrentCycleStatus(
   settings: UserSettings
 ) {
   const currentDate = parseDateStr(currentDateStr);
-  const cycleLen = settings.avgCycleLength || 28;
-  const periodDur = settings.avgPeriodDuration || 5;
+  const stats = calculateCycleStats(cycles, settings);
+  const cycleLen = stats.averageCycleLength;
+  const periodDur = stats.averagePeriodDuration;
   const lutealLen = settings.lutealLength || 14;
 
   // Sort cycles by startDate descending
@@ -144,7 +310,6 @@ export function getCurrentCycleStatus(
       cycleStartDate = addDays(latestStart, elapsedCycles * cycleLen);
       isPredictedStart = true;
     } else {
-      // Today is before the latest cycle? Fallback
       cycleStartDate = latestStart;
     }
   } else {
@@ -157,7 +322,6 @@ export function getCurrentCycleStatus(
   const nextPeriodDate = addDays(cycleStartDate, cycleLen);
   const nextPeriodDateStr = formatDateStr(nextPeriodDate);
 
-  // Ovulation is usually approx (cycleLen - lutealLen)
   const ovulationCycleDay = Math.max(10, cycleLen - lutealLen);
   const ovulationDate = addDays(cycleStartDate, ovulationCycleDay - 1);
   const ovulationDateStr = formatDateStr(ovulationDate);
@@ -174,11 +338,9 @@ export function getCurrentCycleStatus(
     currentPhase = 'luteal';
   }
 
-  // Fertile window: ovulationDay - 5 to ovulationDay + 1
   const isFertile = cycleDay >= ovulationCycleDay - 5 && cycleDay <= ovulationCycleDay + 1;
   const isOvulationDay = cycleDay === ovulationCycleDay;
 
-  // Pregnancy chance
   let conceptionChance: 'Low' | 'Moderate' | 'High' | 'Very High' = 'Low';
   if (isOvulationDay) {
     conceptionChance = 'Very High';
@@ -203,12 +365,15 @@ export function getCurrentCycleStatus(
     cycleStartDateStr: formatDateStr(cycleStartDate),
     isPredictedStart,
     totalCycleDays: cycleLen,
-    periodDuration: periodDur
+    periodDuration: periodDur,
+    estimateLabel: stats.estimateLabel,
+    isEmpirical: stats.isEmpirical
   };
 }
 
 /**
  * Predicts and tags any given calendar day.
+ * Distinguishes confirmed logged/historical periods from predicted estimates.
  */
 export function getDayPrediction(
   targetDateStr: string,
@@ -219,14 +384,13 @@ export function getDayPrediction(
 ): DayPrediction {
   const targetDate = parseDateStr(targetDateStr);
   const currentCycleStart = parseDateStr(currentCycleStartStr);
-  const cycleLen = settings.avgCycleLength || 28;
-  const periodDur = settings.avgPeriodDuration || 5;
+  const stats = calculateCycleStats(cycles, settings);
+  const cycleLen = stats.averageCycleLength;
+  const periodDur = stats.averagePeriodDuration;
   const lutealLen = settings.lutealLength || 14;
   const ovDay = Math.max(10, cycleLen - lutealLen);
 
   const existingLog = logs[targetDateStr];
-
-  // Direct check if explicitly recorded as period in logs
   const isLoggedPeriod = !!existingLog?.isPeriod;
   const flow = existingLog?.flow;
 
@@ -246,11 +410,10 @@ export function getDayPrediction(
   const daysDiff = diffDays(targetDate, currentCycleStart);
   let cycleDayModulo = (daysDiff % cycleLen + cycleLen) % cycleLen + 1;
 
-  // Check if predicted period
   const isFuture = daysDiff > 0;
-  const isPredictedPeriod = !isLoggedPeriod && !isHistoricalPeriod && (cycleDayModulo <= periodDur);
-
   const isPeriod = isLoggedPeriod || isHistoricalPeriod;
+  const isPredictedPeriod = !isPeriod && isFuture && (cycleDayModulo <= periodDur);
+
   const isOvulation = cycleDayModulo === ovDay;
   const isFertile = cycleDayModulo >= ovDay - 5 && cycleDayModulo <= ovDay + 1;
   const isPms = cycleDayModulo >= cycleLen - 4 && cycleDayModulo <= cycleLen;
@@ -269,7 +432,7 @@ export function getDayPrediction(
   return {
     date: targetDateStr,
     isPeriod,
-    isPredictedPeriod: isFuture && isPredictedPeriod,
+    isPredictedPeriod,
     isOvulation,
     isFertile,
     isPms,
@@ -281,62 +444,12 @@ export function getDayPrediction(
 }
 
 /**
- * Calculates cycle statistics from recorded cycles.
- */
-export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: UserSettings) {
-  if (!cycles || cycles.length === 0) {
-    return {
-      averageCycleLength: defaultSettings.avgCycleLength,
-      averagePeriodDuration: defaultSettings.avgPeriodDuration,
-      regularityScore: 'Normal (±1 day)',
-      shortestCycle: defaultSettings.avgCycleLength,
-      longestCycle: defaultSettings.avgCycleLength,
-      recordedCount: 0
-    };
-  }
-
-  const finishedCycles = cycles.filter(c => c.cycleLength && c.cycleLength > 0);
-  const cycleLengths = finishedCycles.map(c => c.cycleLength!);
-  const periodLengths = cycles.filter(c => c.periodDuration).map(c => c.periodDuration!);
-
-  const avgCycle = cycleLengths.length > 0
-    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
-    : defaultSettings.avgCycleLength;
-
-  const avgPeriod = periodLengths.length > 0
-    ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
-    : defaultSettings.avgPeriodDuration;
-
-  const shortest = cycleLengths.length > 0 ? Math.min(...cycleLengths) : avgCycle;
-  const longest = cycleLengths.length > 0 ? Math.max(...cycleLengths) : avgCycle;
-  const variance = longest - shortest;
-
-  let regularityScore = 'Very Regular (±1 day)';
-  if (variance <= 2) {
-    regularityScore = 'Very Regular (±1 day)';
-  } else if (variance <= 4) {
-    regularityScore = 'Normal (±2 days)';
-  } else if (variance <= 7) {
-    regularityScore = 'Moderate Variation (±4 days)';
-  } else {
-    regularityScore = 'Irregular Variation';
-  }
-
-  return {
-    averageCycleLength: avgCycle,
-    averagePeriodDuration: avgPeriod,
-    regularityScore,
-    shortestCycle: shortest,
-    longestCycle: longest,
-    recordedCount: cycles.length
-  };
-}
-
-/**
- * Provides default initial seed data anchored around the current reference date (2026-10-16).
- * Today (Oct 16, 2026) is Day 5 of the current menstrual cycle, started Oct 12, 2026.
+ * Dynamically anchors starter demo/seed data relative to the user's current date (new Date()).
+ * Never uses a hardcoded fixed date.
  */
 export function getInitialSeedData() {
+  const today = new Date();
+
   const settings: UserSettings = {
     avgCycleLength: 28,
     avgPeriodDuration: 5,
@@ -350,96 +463,81 @@ export function getInitialSeedData() {
     pinCode: '1234'
   };
 
-  const cycles: CycleRecord[] = [
+  // Seed 2 completed historical cycles and 1 current cycle relative to today
+  const c3Start = addDays(today, -4);
+  const c3End = addDays(c3Start, 4);
+
+  const c2Start = addDays(c3Start, -28);
+  const c2End = addDays(c2Start, 4);
+
+  const c1Start = addDays(c2Start, -29);
+  const c1End = addDays(c1Start, 4);
+
+  const rawCycles: CycleRecord[] = [
     {
       id: 'c-3',
-      startDate: '2026-10-12',
-      endDate: '2026-10-16',
+      startDate: formatDateStr(c3Start),
+      endDate: formatDateStr(c3End),
       periodDuration: 5,
       isOngoing: true
     },
     {
       id: 'c-2',
-      startDate: '2026-09-14',
-      endDate: '2026-09-18',
-      cycleEndDate: '2026-10-11',
-      cycleLength: 28,
+      startDate: formatDateStr(c2Start),
+      endDate: formatDateStr(c2End),
       periodDuration: 5,
       isOngoing: false
     },
     {
       id: 'c-1',
-      startDate: '2026-08-17',
-      endDate: '2026-08-21',
-      cycleEndDate: '2026-09-13',
-      cycleLength: 28,
+      startDate: formatDateStr(c1Start),
+      endDate: formatDateStr(c1End),
       periodDuration: 5,
       isOngoing: false
     }
   ];
 
-  const logs: Record<string, DailyLog> = {
-    '2026-10-12': {
-      date: '2026-10-12',
-      isPeriod: true,
-      flow: 'medium',
-      symptoms: ['cramps', 'fatigue', 'backache'],
-      moods: ['sensitive', 'exhausted'],
-      waterGlasses: 6,
-      sleepHours: 7.5,
-      pillTaken: true,
-      notes: 'Period started morning. Mild lower back tension.'
-    },
-    '2026-10-13': {
-      date: '2026-10-13',
-      isPeriod: true,
-      flow: 'heavy',
-      symptoms: ['cramps', 'bloating'],
-      moods: ['calm', 'sensitive'],
-      waterGlasses: 8,
-      sleepHours: 8,
-      pillTaken: true,
-      notes: 'Used heating pad, chamomile tea helped soothe cramps.'
-    },
-    '2026-10-14': {
-      date: '2026-10-14',
-      isPeriod: true,
-      flow: 'medium',
-      symptoms: ['cramps'],
-      moods: ['calm', 'happy'],
-      waterGlasses: 7,
-      sleepHours: 8,
-      pillTaken: true,
-      temperature: 36.4,
-      weight: 58.5,
-      notes: 'Feeling noticeably more balanced today.'
-    },
-    '2026-10-15': {
-      date: '2026-10-15',
-      isPeriod: true,
-      flow: 'light',
-      symptoms: [],
-      moods: ['happy', 'calm'],
-      waterGlasses: 8,
-      sleepHours: 8,
-      pillTaken: true,
-      temperature: 36.5,
-      weight: 58.4,
-      notes: 'Flow tapering down nicely, energy returning.'
-    },
-    '2026-10-16': {
-      date: '2026-10-16',
-      isPeriod: true,
-      flow: 'spotting',
-      symptoms: [],
-      moods: ['energetic', 'happy'],
-      waterGlasses: 7,
-      sleepHours: 8.5,
-      pillTaken: true,
-      temperature: 36.5,
-      weight: 58.2,
-      notes: 'Final spotting today (Day 5). Feeling refreshed and motivated!'
-    }
+  const cycles = recalculateAllCycles(rawCycles, 5);
+
+  const logs: Record<string, DailyLog> = {};
+  const day0 = formatDateStr(c3Start);
+  const day1 = formatDateStr(addDays(c3Start, 1));
+  const day2 = formatDateStr(addDays(c3Start, 2));
+
+  logs[day0] = {
+    date: day0,
+    isPeriod: true,
+    flow: 'medium',
+    symptoms: ['cramps', 'fatigue'],
+    moods: ['sensitive'],
+    waterGlasses: 7,
+    sleepHours: 8,
+    pillTaken: true,
+    notes: 'Period started morning. Mild cramps.'
+  };
+
+  logs[day1] = {
+    date: day1,
+    isPeriod: true,
+    flow: 'heavy',
+    symptoms: ['cramps', 'bloating'],
+    moods: ['calm'],
+    waterGlasses: 8,
+    sleepHours: 8,
+    pillTaken: true,
+    notes: 'Warm herbal tea and rest.'
+  };
+
+  logs[day2] = {
+    date: day2,
+    isPeriod: true,
+    flow: 'medium',
+    symptoms: [],
+    moods: ['calm', 'happy'],
+    waterGlasses: 7,
+    sleepHours: 8,
+    pillTaken: true,
+    notes: 'Flow steady, feeling balanced.'
   };
 
   return { settings, cycles, logs };

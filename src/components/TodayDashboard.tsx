@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CycleDial } from './CycleDial';
 import { CycleRecord, DailyLog, UserSettings, CyclePhase, Mood } from '../types';
-import { getCurrentCycleStatus, parseDateStr, formatDateStr, addDays, getDayPrediction, PHASE_GUIDE } from '../utils/cycleCalculations';
+import { getCurrentCycleStatus, parseDateStr, formatDateStr, addDays, getDayPrediction, PHASE_GUIDE, formatDisplayDate } from '../utils/cycleCalculations';
 import {
   Droplets,
   Pill,
@@ -54,11 +54,7 @@ export const TodayDashboard: React.FC<TodayDashboardProps> = ({
   const phaseDetails = PHASE_GUIDE[status.currentPhase];
 
   const todayObj = parseDateStr(currentDateStr);
-  const day = todayObj.getDate();
-  const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
-  const monthName = todayObj.toLocaleDateString('en-US', { month: 'long' });
-  const weekdayName = todayObj.toLocaleDateString('en-US', { weekday: 'long' });
-  const formattedDate = `${weekdayName}, ${day}${suffix} ${monthName} ${todayObj.getFullYear()}`;
+  const formattedDate = formatDisplayDate(todayObj);
 
   // Live time synchronization
   const [liveTime, setLiveTime] = useState<string>(() => {
@@ -173,6 +169,10 @@ export const TodayDashboard: React.FC<TodayDashboardProps> = ({
               <span>{liveTime}</span>
             </div>
           </div>
+          <p className="text-xs text-stone-500 mt-1.5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            <span>{status.estimateLabel} · <span className="text-stone-400">All predictions are estimates</span></span>
+          </p>
         </div>
 
         {/* Pill Reminder Quick Action & Period Start Trigger */}

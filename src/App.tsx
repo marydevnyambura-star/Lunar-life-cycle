@@ -30,7 +30,7 @@ import { CycleHistoryView } from './components/CycleHistoryView';
 import { MyProfileView } from './components/MyProfileView';
 import { SettingsAndPrivacy } from './components/SettingsAndPrivacy';
 import { DailyLoggerModal } from './components/DailyLoggerModal';
-import { RecordPeriodStartModal } from './components/RecordPeriodStartModal';
+import { RecordPeriodModal } from './components/RecordPeriodModal';
 import { PinLockModal } from './components/PinLockModal';
 import { MobileTabBar } from './components/MobileTabBar';
 import {
@@ -38,14 +38,33 @@ import {
   parseDateStr,
   formatDateStr,
   diffDays,
-  getCurrentCycleStatus
+  addDays,
+  getCurrentCycleStatus,
+  getLocalTodayStr,
+  recalculateAllCycles
 } from './utils/cycleCalculations';
 import { UserSettings, CycleRecord, DailyLog, FlowIntensity, Symptom, Mood } from './types';
-import { Sparkles, CheckCircle2, Heart } from 'lucide-react';
+import { Sparkles, Heart } from 'lucide-react';
 
 export default function App() {
-  // Aligned with today: 16th October 2026
-  const [currentDateStr] = useState<string>('2026-10-16');
+  // Automatically detected local current date (e.g. Wednesday, 21st October 2026)
+  const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalTodayStr());
+
+  // Automatic daily rollover and local timezone synchronization
+  useEffect(() => {
+    const checkDate = () => {
+      const today = getLocalTodayStr();
+      setCurrentDateStr(prev => (prev !== today ? today : prev));
+    };
+
+    const interval = setInterval(checkDate, 60000);
+    window.addEventListener('focus', checkDate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkDate);
+    };
+  }, []);
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -66,7 +85,11 @@ export default function App() {
   // Modal Logger states
   const [loggerModalOpen, setLoggerModalOpen] = useState<boolean>(false);
   const [loggerModalDate, setLoggerModalDate] = useState<string>(currentDateStr);
-  const [recordPeriodStartModalOpen, setRecordPeriodStartModalOpen] = useState<boolean>(false);
+
+  // Record Period Modal (supports historical past months/years + editing existing cycles)
+  const [recordPeriodModalOpen, setRecordPeriodModalOpen] = useState<boolean>(false);
+  const [editingCycle, setEditingCycle] = useState<CycleRecord | null>(null);
+  const [recordModalInitialDate, setRecordModalInitialDate] = useState<string>(currentDateStr);
 
   // Lively Feedback Toast
   const [livelyToast, setLivelyToast] = useState<{ message: string; sub?: string } | null>(null);
@@ -75,7 +98,7 @@ export default function App() {
     setLivelyToast({ message, sub });
     setTimeout(() => {
       setLivelyToast(null);
-    }, 3800);
+    }, 4000);
   };
 
   // Listen to Firebase Auth state
@@ -129,6 +152,9 @@ export default function App() {
         }
         userCycles = seed.cycles;
         userLogs = seed.logs;
+      } else {
+        // Recalculate existing cycles to ensure cycle lengths between all periods are up to date
+        userCycles = recalculateAllCycles(userCycles, userSettings.avgPeriodDuration || 5);
       }
 
       setCycles(userCycles);
@@ -171,88 +197,102 @@ export default function App() {
     setLoggerModalOpen(true);
   };
 
-  // Record Period Start Handler (Explicitly records when period started)
-  const handleSavePeriodStart = async (
-    startDate: string,
-    flow: FlowIntensity,
-    duration: number,
-    symptoms: Symptom[]
-  ) => {
+  // Open Record Period Modal (supports new period or editing existing)
+  const handleOpenRecordPeriod = (dateStr?: string, cycleToEdit?: CycleRecord) => {
+    setEditingCycle(cycleToEdit || null);
+    setRecordModalInitialDate(dateStr || currentDateStr);
+    setRecordPeriodModalOpen(true);
+  };
+
+  // Save / Update Menstrual Period Record
+  const handleSavePeriodRecord = async (data: {
+    id?: string;
+    startDate: string;
+    endDate?: string;
+    periodDuration: number;
+    flow?: FlowIntensity;
+    symptoms?: Symptom[];
+    notes?: string;
+  }) => {
     if (!currentUser) return;
 
-    // 1. Look for any existing cycle that starts on this exact date
-    const existingIndex = cycles.findIndex(c => c.startDate === startDate);
+    const targetId = data.id || `c-${Date.now()}`;
+    const newCycle: CycleRecord = {
+      id: targetId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      periodDuration: data.periodDuration,
+      isOngoing: false
+    };
 
-    let updatedCycles = [...cycles];
-    let newCycleId = `c-${Date.now()}`;
+    // Combine with other cycles and recalculate cycle length between all period start dates
+    const otherCycles = cycles.filter(c => c.id !== targetId);
+    const combined = [...otherCycles, newCycle];
+    const recalculated = recalculateAllCycles(combined, settings.avgPeriodDuration || 5);
 
-    if (existingIndex >= 0) {
-      // Update existing cycle record
-      const existing = updatedCycles[existingIndex];
-      const updatedCycle: CycleRecord = {
-        ...existing,
-        periodDuration: duration,
-        isOngoing: true
-      };
-      updatedCycles[existingIndex] = updatedCycle;
-      await saveUserCycleToDb(currentUser.uid, updatedCycle);
-    } else {
-      // 2. Close any previous ongoing cycle by setting its cycleEndDate
-      const sorted = [...updatedCycles].sort((a, b) => a.startDate.localeCompare(b.startDate));
-      const newStartDateObj = parseDateStr(startDate);
+    setCycles(recalculated);
 
-      for (let i = 0; i < sorted.length; i++) {
-        const c = sorted[i];
-        const cStart = parseDateStr(c.startDate);
-        if (diffDays(newStartDateObj, cStart) > 0 && c.isOngoing) {
-          c.isOngoing = false;
-          c.cycleEndDate = startDate;
-          c.cycleLength = diffDays(newStartDateObj, cStart);
-          await saveUserCycleToDb(currentUser.uid, c);
-        }
-      }
-
-      // 3. Create fresh new ongoing cycle starting on this date
-      const newRecord: CycleRecord = {
-        id: newCycleId,
-        startDate,
-        periodDuration: duration,
-        isOngoing: true
-      };
-      updatedCycles = [newRecord, ...updatedCycles].sort((a, b) => b.startDate.localeCompare(a.startDate));
-      await saveUserCycleToDb(currentUser.uid, newRecord);
+    // Save recalculated cycles to Firestore
+    for (const c of recalculated) {
+      await saveUserCycleToDb(currentUser.uid, c);
     }
 
-    setCycles(updatedCycles);
-
-    // 4. Create/update the daily log on this starting date
-    const existingLog = logs[startDate];
+    // Update Daily Log for the period start date
+    const existingLog = logs[data.startDate];
     const updatedLog: DailyLog = {
       ...(existingLog || {
-        date: startDate,
+        date: data.startDate,
         moods: []
       }),
       isPeriod: true,
-      flow: flow || 'medium',
-      symptoms: Array.from(new Set([...(existingLog?.symptoms || []), ...symptoms]))
+      flow: data.flow || 'medium',
+      symptoms: Array.from(new Set([...(existingLog?.symptoms || []), ...(data.symptoms || [])])),
+      notes: data.notes || existingLog?.notes
     };
 
     setLogs(prev => ({
       ...prev,
-      [startDate]: updatedLog
+      [data.startDate]: updatedLog
     }));
-
     await saveUserDailyLogToDb(currentUser.uid, updatedLog);
 
-    // If start date is today, ensure today is active bleed
-    if (startDate === currentDateStr) {
-      setLogs(prev => ({ ...prev, [currentDateStr]: updatedLog }));
+    // Also mark bleed days up to periodDuration if not yet recorded
+    const startObj = parseDateStr(data.startDate);
+    for (let i = 1; i < data.periodDuration; i++) {
+      const bleedDateStr = formatDateStr(addDays(startObj, i));
+      if (!logs[bleedDateStr]?.isPeriod) {
+        const bleedLog: DailyLog = {
+          ...(logs[bleedDateStr] || { date: bleedDateStr, moods: [] }),
+          isPeriod: true,
+          flow: data.flow || 'light'
+        };
+        setLogs(prev => ({ ...prev, [bleedDateStr]: bleedLog }));
+        await saveUserDailyLogToDb(currentUser.uid, bleedLog);
+      }
     }
 
     showLivelyToast(
-      `Period start recorded: ${startDate}`,
-      'Cycle Day 1 has begun! Predictions and fertile window recalibrated.'
+      data.id ? 'Period record updated' : `Period recorded: ${data.startDate}`,
+      'Cycle length to next period and predictions recalibrated!'
     );
+  };
+
+  // Delete Cycle Record
+  const handleDeleteCycle = async (cycleId: string) => {
+    if (!currentUser) return;
+
+    const remaining = cycles.filter(c => c.id !== cycleId);
+    const recalculated = recalculateAllCycles(remaining, settings.avgPeriodDuration || 5);
+    setCycles(recalculated);
+
+    await deleteUserCycleFromDb(currentUser.uid, cycleId);
+
+    // Update any adjacent cycles whose cycleLength changed
+    for (const c of recalculated) {
+      await saveUserCycleToDb(currentUser.uid, c);
+    }
+
+    showLivelyToast('Record removed', 'Cycle history and predictions updated.');
   };
 
   // Quick Mood Tap
@@ -303,8 +343,11 @@ export default function App() {
           periodDuration: settings.avgPeriodDuration,
           isOngoing: true
         };
-        setCycles(prev => [newRecord, ...prev]);
-        await saveUserCycleToDb(currentUser.uid, newRecord);
+        const recalculated = recalculateAllCycles([newRecord, ...cycles], settings.avgPeriodDuration);
+        setCycles(recalculated);
+        for (const c of recalculated) {
+          await saveUserCycleToDb(currentUser.uid, c);
+        }
       }
     }
 
@@ -356,8 +399,11 @@ export default function App() {
           periodDuration: settings.avgPeriodDuration,
           isOngoing: true
         };
-        setCycles(prev => [newRecord, ...prev]);
-        await saveUserCycleToDb(currentUser.uid, newRecord);
+        const recalculated = recalculateAllCycles([newRecord, ...cycles], settings.avgPeriodDuration);
+        setCycles(recalculated);
+        for (const c of recalculated) {
+          await saveUserCycleToDb(currentUser.uid, c);
+        }
       }
 
       showLivelyToast('Period started today', 'Cycle Day 1 begun!');
@@ -401,39 +447,6 @@ export default function App() {
     await saveUserDailyLogToDb(currentUser.uid, updatedLog);
   };
 
-  // Add Past Cycle (Historical Backfill)
-  const handleAddCycle = async (startDate: string, duration: number) => {
-    if (!currentUser) return;
-
-    const newRecord: CycleRecord = {
-      id: `c-${Date.now()}`,
-      startDate,
-      periodDuration: duration,
-      isOngoing: false
-    };
-
-    const updated = [...cycles, newRecord].sort((a, b) => a.startDate.localeCompare(b.startDate));
-    for (let i = 0; i < updated.length - 1; i++) {
-      const current = updated[i];
-      const next = updated[i + 1];
-      const span = diffDays(parseDateStr(next.startDate), parseDateStr(current.startDate));
-      current.cycleLength = span;
-      current.cycleEndDate = next.startDate;
-      await saveUserCycleToDb(currentUser.uid, current);
-    }
-
-    await saveUserCycleToDb(currentUser.uid, newRecord);
-    setCycles(updated.sort((a, b) => b.startDate.localeCompare(a.startDate)));
-    showLivelyToast('Past period added', `Recorded start date ${startDate}`);
-  };
-
-  // Delete Cycle Record
-  const handleDeleteCycle = async (cycleId: string) => {
-    if (!currentUser) return;
-    setCycles(prev => prev.filter(c => c.id !== cycleId));
-    await deleteUserCycleFromDb(currentUser.uid, cycleId);
-  };
-
   // Update Settings
   const handleUpdateSettings = async (newSettings: UserSettings) => {
     if (!currentUser) return;
@@ -473,12 +486,13 @@ export default function App() {
     logs: Record<string, DailyLog>;
   }) => {
     if (!currentUser) return;
+    const recalculated = recalculateAllCycles(data.cycles, data.settings.avgPeriodDuration);
     setSettings(data.settings);
-    setCycles(data.cycles);
+    setCycles(recalculated);
     setLogs(data.logs);
 
     await saveUserSettingsToDb(currentUser.uid, data.settings);
-    for (const c of data.cycles) {
+    for (const c of recalculated) {
       await saveUserCycleToDb(currentUser.uid, c);
     }
     for (const k of Object.keys(data.logs)) {
@@ -558,7 +572,7 @@ export default function App() {
             logs={logs}
             settings={settings}
             onOpenLog={handleOpenLogger}
-            onOpenRecordPeriodStart={() => setRecordPeriodStartModalOpen(true)}
+            onOpenRecordPeriodStart={() => handleOpenRecordPeriod(currentDateStr)}
             onTogglePeriodBleedToday={handleTogglePeriodBleedToday}
             onTogglePillToday={handleTogglePillToday}
             onUpdateWaterToday={handleUpdateWaterToday}
@@ -575,6 +589,7 @@ export default function App() {
             logs={logs}
             cycles={cycles}
             onOpenLogForDate={handleOpenLogger}
+            onOpenRecordPeriodForDate={(dateStr, cycleToEdit) => handleOpenRecordPeriod(dateStr, cycleToEdit)}
           />
         )}
 
@@ -590,8 +605,9 @@ export default function App() {
           <CycleHistoryView
             cycles={cycles}
             settings={settings}
-            onAddCycle={handleAddCycle}
+            onOpenRecordModal={(cycleToEdit) => handleOpenRecordPeriod(undefined, cycleToEdit)}
             onDeleteCycle={handleDeleteCycle}
+            currentDateStr={currentDateStr}
           />
         )}
 
@@ -617,13 +633,18 @@ export default function App() {
         )}
       </main>
 
-      {/* Record Period Start Modal */}
-      <RecordPeriodStartModal
-        isOpen={recordPeriodStartModalOpen}
-        onClose={() => setRecordPeriodStartModalOpen(false)}
+      {/* Record & Edit Menstrual Period Modal (Current or Past Months) */}
+      <RecordPeriodModal
+        isOpen={recordPeriodModalOpen}
+        onClose={() => {
+          setRecordPeriodModalOpen(false);
+          setEditingCycle(null);
+        }}
         currentDateStr={currentDateStr}
         defaultDuration={settings.avgPeriodDuration}
-        onSavePeriodStart={handleSavePeriodStart}
+        editingCycle={editingCycle}
+        initialStartDate={recordModalInitialDate}
+        onSaveCycle={handleSavePeriodRecord}
       />
 
       {/* Daily Logger Modal Bottom Sheet / Center Modal */}

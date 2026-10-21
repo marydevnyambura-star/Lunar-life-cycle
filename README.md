@@ -39,10 +39,13 @@
 - Workout and movement recommendations tailored to hormonal energy rhythms.
 - Self-care rituals for menstrual restoration and luteal comfort.
 
-### 6. Cycle History & Statistical Insights
-- Historical cycle duration trends and flow span analysis.
-- Cycle regularity score with variation analysis (e.g., *Very Regular ±1 day*).
-- Backfill tool: Add past period dates to calculate long-term biological trends.
+### 6. Historical Period Recording & Dynamic Cycle Calculations
+- **Automatic Real-Time Date & Time Tracking**: Automatically detects the current date in the user's local timezone (e.g. Wednesday, 21st October 2026) with midnight auto-rollover and live clock.
+- **Past Month & Year Historical Period Logging**: Record previous menstrual periods from any month or year (e.g., September 2026, August 2026, July 2026).
+- **Exact Start Date, End Date & Duration Synchronization**: Setting start/end dates automatically calculates bleed duration, and adjusting duration automatically updates the end date.
+- **Accurate Cycle Length Calculation**: Calculates cycle lengths as the exact number of days between the first day of one period and the first day of the next period.
+- **Empirical Cycle Average vs Custom Estimate**: Dynamically computes average cycle length from recorded consecutive cycles when data is available, with a clearly labeled estimation source and fallback to customizable settings.
+- **Edit & Delete Protection**: Edit existing cycle records or delete with a safety confirmation dialog; all predictions, cycle lengths, and fertile windows recalibrate in real time.
 
 ### 7. My Profile & Data Sovereignty
 - **Verified Identity**: Displays verified Google account name, email address, profile picture, account creation date, and last active session.
