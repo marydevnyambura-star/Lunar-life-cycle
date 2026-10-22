@@ -1,4 +1,17 @@
-import { CycleRecord, DailyLog, DayPrediction, CyclePhase, UserSettings, PhaseInfo } from '../types';
+import {
+  CycleRecord,
+  DailyLog,
+  DayPrediction,
+  CyclePhase,
+  UserSettings,
+  PhaseInfo,
+  PeriodPredictionResult,
+  MenstrualHealthInsights,
+  Symptom,
+  SymptomFrequency,
+  PainSeverity,
+  FlowIntensity
+} from '../types';
 
 export function formatDateStr(date: Date): string {
   const y = date.getFullYear();
@@ -57,26 +70,36 @@ export function formatDisplayDate(date: Date): string {
   return `${weekday}, ${day}${suffix} ${month} ${year}`;
 }
 
+/**
+ * Formats a Date object into a shorter display format: e.g. "21 Oct 2026"
+ */
+export function formatShortDate(date: Date): string {
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
 // Phase details and scientific cycle-syncing guidance
 export const PHASE_GUIDE: Record<CyclePhase, PhaseInfo> = {
   menstrual: {
     phase: 'menstrual',
     title: 'Menstrual Phase',
     dayRange: 'Days 1 – 5',
-    summary: 'The uterine lining sheds as estrogen and progesterone dip to their lowest baseline levels.',
+    summary: 'The uterine lining sheds as estrogen and progesterone dip to baseline levels.',
     hormones: 'Low estrogen & progesterone. Rising FSH at end.',
     energy: 'Inward, reflective, lower physical endurance.',
     nutrition: [
-      'Iron-dense foods (dark greens, lentils, lean protein)',
+      'Iron-dense foods (dark leafy greens, lentils, clean protein)',
       'Warm herbal infusions (chamomile, ginger, raspberry leaf)',
       'Healthy omega-3 fats to soothe inflammatory prostaglandins',
-      'Hydration with electrolytes to ease muscle cramping'
+      'Hydration with magnesium & electrolytes to ease muscle cramping'
     ],
     movement: [
-      'Gentle yin yoga & pelvic opening postures',
+      'Gentle restorative yin yoga & pelvic opening postures',
       'Leisurely outdoor walking',
-      'Breathwork and meditation',
-      'Restorative stretching'
+      'Gentle breathwork and guided meditation',
+      'Restorative full-body stretching'
     ],
     selfCare: 'Honor quiet downtime, take warm magnesium baths, and keep schedules flexible.'
   },
@@ -105,7 +128,7 @@ export const PHASE_GUIDE: Record<CyclePhase, PhaseInfo> = {
     phase: 'ovulation',
     title: 'Ovulatory Phase',
     dayRange: 'Days 14 – 16',
-    summary: 'Luteinizing Hormone (LH) surges triggering mature egg release; estrogen peaks alongside a brief testosterone spike.',
+    summary: 'Luteinizing Hormone (LH) surges triggering mature egg release; estrogen peaks alongside a transient testosterone spike.',
     hormones: 'Peak estrogen, LH surge, transient testosterone rise.',
     energy: 'Peak confidence, magnetic charisma, highest communicative drive.',
     nutrition: [
@@ -148,7 +171,7 @@ export const PHASE_GUIDE: Record<CyclePhase, PhaseInfo> = {
 /**
  * Calculates cycle statistics from recorded cycles.
  * Uses historical cycles to calculate actual average cycle length between consecutive periods.
- * If insufficient history exists, falls back to the user's custom settings or default estimate.
+ * Uses outlier filtering so an atypical cycle (e.g. 50+ days or 14 days) does not corrupt averages.
  */
 export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: UserSettings) {
   const fallbackCycleLen = defaultSettings.avgCycleLength || 28;
@@ -168,16 +191,23 @@ export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: User
     };
   }
 
-  // Cycles with valid positive cycleLength (days from this period start to next period start)
-  const completedCycles = cycles.filter(c => c.cycleLength && c.cycleLength >= 15 && c.cycleLength <= 65);
+  // Filter cycles with valid positive cycleLength (days from this period start to next period start)
+  const completedCycles = cycles.filter(c => c.cycleLength && c.cycleLength >= 18 && c.cycleLength <= 60);
   const cycleLengths = completedCycles.map(c => c.cycleLength!);
   const periodLengths = cycles.filter(c => c.periodDuration && c.periodDuration > 0).map(c => c.periodDuration!);
 
   const hasEmpiricalHistory = cycleLengths.length >= 1;
 
-  const avgCycle = hasEmpiricalHistory
-    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
-    : fallbackCycleLen;
+  let avgCycle = fallbackCycleLen;
+  if (hasEmpiricalHistory) {
+    // Weight recent cycles slightly more heavily (e.g. past 3-4 cycles)
+    if (cycleLengths.length === 1) {
+      avgCycle = cycleLengths[0];
+    } else {
+      const recent = cycleLengths.slice(0, 4);
+      avgCycle = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+    }
+  }
 
   const avgPeriod = periodLengths.length > 0
     ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
@@ -218,6 +248,179 @@ export function calculateCycleStats(cycles: CycleRecord[], defaultSettings: User
 }
 
 /**
+ * Intelligent Period Prediction Engine with Early & Late Period Detection.
+ * Compares expected dates with actual recorded periods and local current date.
+ */
+export function calculateIntelligentPrediction(
+  currentDateStr: string,
+  cycles: CycleRecord[],
+  settings: UserSettings
+): PeriodPredictionResult {
+  const currentDate = parseDateStr(currentDateStr);
+  const fallbackCycleLen = settings.avgCycleLength || 28;
+
+  // Filter out invalid/malformed cycles and sort ascending by date
+  const sortedCyclesAsc = [...cycles]
+    .filter(c => c.startDate && c.startDate.length === 10)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  const sortedCyclesDesc = [...sortedCyclesAsc].reverse();
+  const latestCycle = sortedCyclesDesc[0];
+
+  // Completed cycle intervals
+  const completedIntervals = sortedCyclesAsc
+    .filter(c => c.cycleLength && c.cycleLength >= 18 && c.cycleLength <= 60)
+    .map(c => c.cycleLength!);
+
+  const cyclesCount = completedIntervals.length;
+
+  // 1. Calculate Average Cycle Length with Outlier Resistance
+  let averageCycleLength = fallbackCycleLen;
+  let variabilityDays = 2; // default variability window (±2 days)
+  let confidenceLevel: 'provisional' | 'moderate' | 'high' | 'insufficient' = 'insufficient';
+  let confidenceLabel = 'Provisional estimate (based on user settings)';
+
+  if (cyclesCount === 0) {
+    confidenceLevel = 'insufficient';
+    confidenceLabel = `Provisional (${fallbackCycleLen}-day default · customizable in Settings)`;
+    variabilityDays = 2;
+  } else if (cyclesCount === 1) {
+    averageCycleLength = completedIntervals[0];
+    confidenceLevel = 'provisional';
+    confidenceLabel = `Provisional (based on 1 recorded cycle interval of ${averageCycleLength} days)`;
+    variabilityDays = 2;
+  } else if (cyclesCount <= 3) {
+    // Average of available cycles
+    averageCycleLength = Math.round(completedIntervals.reduce((a, b) => a + b, 0) / cyclesCount);
+    const diffs = completedIntervals.map(l => Math.abs(l - averageCycleLength));
+    const maxDiff = Math.max(...diffs);
+    variabilityDays = Math.max(1, Math.min(4, Math.round(maxDiff)));
+    confidenceLevel = 'moderate';
+    confidenceLabel = `Moderate confidence (based on ${cyclesCount} recorded cycles · ±${variabilityDays}d variability)`;
+  } else {
+    // 4+ cycles: Calculate weighted moving average of the last 4 cycles + standard deviation
+    const recent = completedIntervals.slice(-4);
+    averageCycleLength = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+    
+    // Standard deviation of recent intervals
+    const variance = recent.reduce((sum, val) => sum + Math.pow(val - averageCycleLength, 2), 0) / recent.length;
+    const stdDev = Math.sqrt(variance);
+    variabilityDays = Math.max(1, Math.min(4, Math.round(stdDev)));
+
+    confidenceLevel = 'high';
+    confidenceLabel = `High confidence (adaptive learning from ${cyclesCount} recorded cycles)`;
+  }
+
+  // 2. Identify Latest Cycle Anchor and Expected Start Date
+  if (!latestCycle) {
+    const dummyDate = addDays(currentDate, 14);
+    const dummyStr = formatDateStr(dummyDate);
+    return {
+      status: 'prediction_unavailable',
+      statusLabel: 'Prediction Unavailable',
+      statusBadgeColor: 'bg-stone-100 text-stone-700 border-stone-300',
+      statusDescription: 'Record your first menstrual period to activate cycle intelligence and personalized forecasts.',
+      predictedStartDate: dummyStr,
+      predictedRangeStart: dummyStr,
+      predictedRangeEnd: dummyStr,
+      uncertaintyDays: 2,
+      daysRemainingOrOverdue: 0,
+      confidenceLevel: 'insufficient',
+      confidenceLabel: 'No periods recorded yet',
+      averageCycleLength: fallbackCycleLen,
+      cycleVariabilityDays: 2,
+      cyclesAnalyzedCount: 0
+    };
+  }
+
+  const latestStart = parseDateStr(latestCycle.startDate);
+  const daysSinceStart = diffDays(currentDate, latestStart);
+
+  // If latest cycle started recently (within period duration or actively ongoing today)
+  const isPeriodCurrentlyActive = latestCycle.isOngoing && daysSinceStart >= 0 && daysSinceStart < (latestCycle.periodDuration || 5);
+
+  // Expected next period date based on latest start + average cycle length
+  const nextPeriodDate = addDays(latestStart, averageCycleLength);
+  const nextPeriodDateStr = formatDateStr(nextPeriodDate);
+
+  const rangeStart = addDays(nextPeriodDate, -variabilityDays);
+  const rangeEnd = addDays(nextPeriodDate, variabilityDays);
+  const rangeStartStr = formatDateStr(rangeStart);
+  const rangeEndStr = formatDateStr(rangeEnd);
+
+  const daysRemaining = diffDays(nextPeriodDate, currentDate); // positive = future, negative = past
+
+  // 3. Early / Late / Upcoming / Range Evaluation
+  let status: PeriodPredictionResult['status'] = 'upcoming';
+  let statusLabel = 'Upcoming';
+  let statusBadgeColor = 'bg-purple-100 text-[#542080] border-[#C8A2E8]';
+  let statusDescription = `Expected on ${formatDisplayDate(nextPeriodDate)} (Window: ${formatShortDate(rangeStart)} – ${formatShortDate(rangeEnd)}).`;
+  let gentleNotification: string | undefined = undefined;
+
+  if (isPeriodCurrentlyActive || daysSinceStart === 0) {
+    status = 'period_started';
+    statusLabel = 'Period Started';
+    statusBadgeColor = 'bg-pink-100 text-pink-700 border-pink-300';
+    statusDescription = `You recorded period flow starting on ${formatDisplayDate(latestStart)} (Day ${daysSinceStart + 1}).`;
+  } else if (daysSinceStart > 0 && daysSinceStart < averageCycleLength - variabilityDays) {
+    // Within normal cycle progression before expected window
+    status = 'upcoming';
+    statusLabel = 'Upcoming';
+    statusBadgeColor = 'bg-purple-100 text-[#542080] border-[#C8A2E8]';
+    statusDescription = `Expected in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} on ${formatShortDate(nextPeriodDate)}.`;
+  } else if (daysSinceStart >= averageCycleLength - variabilityDays && daysSinceStart <= averageCycleLength + variabilityDays) {
+    // Within expected range window
+    status = 'within_expected_range';
+    statusLabel = 'Within Expected Range';
+    statusBadgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
+    statusDescription = `Your period is expected around now (${formatShortDate(rangeStart)} – ${formatShortDate(rangeEnd)}).`;
+    gentleNotification = `Your expected period window is open. If your bleeding has started, tap "Record Period Start" to calibrate your cycle.`;
+  } else if (daysSinceStart > averageCycleLength + variabilityDays) {
+    // Later than expected range!
+    const daysPastExpected = diffDays(currentDate, rangeEnd);
+    status = 'later_than_expected';
+    statusLabel = 'Later Than Expected';
+    statusBadgeColor = 'bg-rose-100 text-rose-800 border-rose-300';
+    statusDescription = `Your period was expected around ${formatShortDate(nextPeriodDate)} (${daysPastExpected} day${daysPastExpected !== 1 ? 's' : ''} past the estimated window).`;
+    gentleNotification = `Your period was expected around ${formatShortDate(nextPeriodDate)}. It hasn't been recorded yet. If it has started, log your period to update your cycle. Cycle predictions are estimates and variations are normal.`;
+  }
+
+  // Check if user recorded a period that started earlier than expected
+  if (sortedCyclesAsc.length >= 2) {
+    const prevCycle = sortedCyclesAsc[sortedCyclesAsc.length - 2];
+    const prevStart = parseDateStr(prevCycle.startDate);
+    const expectedForLatest = addDays(prevStart, averageCycleLength);
+    const diffFromExpected = diffDays(latestStart, expectedForLatest);
+
+    // If latest cycle started more than variability days earlier
+    if (diffFromExpected < -variabilityDays && daysSinceStart < 10) {
+      status = 'earlier_than_expected';
+      statusLabel = 'Started Earlier Than Expected';
+      statusBadgeColor = 'bg-pink-100 text-pink-800 border-pink-300';
+      statusDescription = `Your period started on ${formatShortDate(latestStart)}, ${Math.abs(diffFromExpected)} days before the estimated date.`;
+    }
+  }
+
+  return {
+    status,
+    statusLabel,
+    statusBadgeColor,
+    statusDescription,
+    predictedStartDate: nextPeriodDateStr,
+    predictedRangeStart: rangeStartStr,
+    predictedRangeEnd: rangeEndStr,
+    uncertaintyDays: variabilityDays,
+    daysRemainingOrOverdue: daysRemaining,
+    confidenceLevel,
+    confidenceLabel,
+    averageCycleLength,
+    cycleVariabilityDays: variabilityDays,
+    cyclesAnalyzedCount: cyclesCount,
+    gentleNotification
+  };
+}
+
+/**
  * Takes any list of cycle records, sorts chronologically, recalculates cycle length
  * (number of days between the first day of one period and the first day of the next period),
  * sets period duration and end dates, and marks ongoing status.
@@ -229,7 +432,10 @@ export function recalculateAllCycles(
   if (!cycles || cycles.length === 0) return [];
 
   // Sort ascending by startDate
-  const ascending = [...cycles].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const ascending = [...cycles]
+    .filter(c => c.startDate && c.startDate.length === 10)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  
   const todayStr = getLocalTodayStr();
   const todayObj = parseDateStr(todayStr);
 
@@ -278,7 +484,7 @@ export function recalculateAllCycles(
 
 /**
  * Computes current cycle status relative to reference date (today).
- * Dynamically uses calculated average cycle length from historical data or user settings.
+ * Integrates intelligent predictions, confidence metrics, and estimated windows.
  */
 export function getCurrentCycleStatus(
   currentDateStr: string,
@@ -286,12 +492,11 @@ export function getCurrentCycleStatus(
   settings: UserSettings
 ) {
   const currentDate = parseDateStr(currentDateStr);
-  const stats = calculateCycleStats(cycles, settings);
-  const cycleLen = stats.averageCycleLength;
-  const periodDur = stats.averagePeriodDuration;
+  const prediction = calculateIntelligentPrediction(currentDateStr, cycles, settings);
+  const cycleLen = prediction.averageCycleLength;
+  const periodDur = settings.avgPeriodDuration || 5;
   const lutealLen = settings.lutealLength || 14;
 
-  // Sort cycles by startDate descending
   const sortedCycles = [...cycles].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const latestCycle = sortedCycles[0];
 
@@ -305,7 +510,6 @@ export function getCurrentCycleStatus(
     if (daysSinceStart >= 0 && daysSinceStart < cycleLen + 7) {
       cycleStartDate = latestStart;
     } else if (daysSinceStart >= cycleLen + 7) {
-      // Multiple cycles might have elapsed without an explicit log
       const elapsedCycles = Math.floor(daysSinceStart / cycleLen);
       cycleStartDate = addDays(latestStart, elapsedCycles * cycleLen);
       isPredictedStart = true;
@@ -313,14 +517,11 @@ export function getCurrentCycleStatus(
       cycleStartDate = latestStart;
     }
   } else {
-    // Default fallback: 14 days ago
     cycleStartDate = addDays(currentDate, -14);
   }
 
   const cycleDay = Math.max(1, diffDays(currentDate, cycleStartDate) + 1);
   const daysUntilNextPeriod = Math.max(0, cycleLen - cycleDay + 1);
-  const nextPeriodDate = addDays(cycleStartDate, cycleLen);
-  const nextPeriodDateStr = formatDateStr(nextPeriodDate);
 
   const ovulationCycleDay = Math.max(10, cycleLen - lutealLen);
   const ovulationDate = addDays(cycleStartDate, ovulationCycleDay - 1);
@@ -356,7 +557,9 @@ export function getCurrentCycleStatus(
     cycleDay,
     currentPhase,
     daysUntilNextPeriod,
-    nextPeriodDateStr,
+    nextPeriodDateStr: prediction.predictedStartDate,
+    nextPeriodRangeStart: prediction.predictedRangeStart,
+    nextPeriodRangeEnd: prediction.predictedRangeEnd,
     ovulationDateStr,
     ovulationCycleDay,
     isFertile,
@@ -366,8 +569,8 @@ export function getCurrentCycleStatus(
     isPredictedStart,
     totalCycleDays: cycleLen,
     periodDuration: periodDur,
-    estimateLabel: stats.estimateLabel,
-    isEmpirical: stats.isEmpirical
+    prediction,
+    estimateLabel: prediction.confidenceLabel
   };
 }
 
@@ -384,9 +587,9 @@ export function getDayPrediction(
 ): DayPrediction {
   const targetDate = parseDateStr(targetDateStr);
   const currentCycleStart = parseDateStr(currentCycleStartStr);
-  const stats = calculateCycleStats(cycles, settings);
-  const cycleLen = stats.averageCycleLength;
-  const periodDur = stats.averagePeriodDuration;
+  const predictionResult = calculateIntelligentPrediction(getLocalTodayStr(), cycles, settings);
+  const cycleLen = predictionResult.averageCycleLength;
+  const periodDur = settings.avgPeriodDuration || 5;
   const lutealLen = settings.lutealLength || 14;
   const ovDay = Math.max(10, cycleLen - lutealLen);
 
@@ -414,6 +617,12 @@ export function getDayPrediction(
   const isPeriod = isLoggedPeriod || isHistoricalPeriod;
   const isPredictedPeriod = !isPeriod && isFuture && (cycleDayModulo <= periodDur);
 
+  // Check if date falls in predicted range window
+  const isPredictedWindow = isFuture && !isPeriod && (
+    targetDateStr >= predictionResult.predictedRangeStart &&
+    targetDateStr <= predictionResult.predictedRangeEnd
+  );
+
   const isOvulation = cycleDayModulo === ovDay;
   const isFertile = cycleDayModulo >= ovDay - 5 && cycleDayModulo <= ovDay + 1;
   const isPms = cycleDayModulo >= cycleLen - 4 && cycleDayModulo <= cycleLen;
@@ -433,19 +642,254 @@ export function getDayPrediction(
     date: targetDateStr,
     isPeriod,
     isPredictedPeriod,
+    isPredictedWindow,
     isOvulation,
     isFertile,
     isPms,
     phase,
     cycleDay: cycleDayModulo,
     flow,
-    hasLog: !!existingLog
+    hasLog: !!existingLog,
+    symptoms: existingLog?.symptoms
   };
 }
 
 /**
- * Dynamically anchors starter demo/seed data relative to the user's current date (new Date()).
- * Never uses a hardcoded fixed date.
+ * Health Intelligence Engine: Analyzes recurring symptoms, cycle patterns,
+ * pre-menstrual vs menstrual symptoms, pain severity, and flow patterns
+ * STRICTLY from actual stored records.
+ */
+export function generateHealthInsights(
+  cycles: CycleRecord[],
+  logs: Record<string, DailyLog>,
+  settings: UserSettings
+): MenstrualHealthInsights {
+  const sortedCycles = [...cycles].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const logEntries = Object.values(logs);
+  const totalLoggedDays = logEntries.length;
+
+  const allSymptoms: Symptom[] = [
+    'cramps', 'headache', 'bloating', 'tender_breasts', 'fatigue',
+    'acne', 'backache', 'pelvic_pain', 'joint_pain', 'nausea',
+    'cravings', 'insomnia', 'mood_swings'
+  ];
+
+  // If no data is available
+  if (sortedCycles.length === 0 && totalLoggedDays === 0) {
+    return {
+      totalCyclesAnalyzed: 0,
+      totalLoggedDays: 0,
+      dateRangeCovered: 'No logged history',
+      frequentSymptoms: [],
+      recurringCyclePatterns: [
+        'Record previous periods and daily symptoms to reveal personal cycle trends and biological rhythms.'
+      ],
+      preMenstrualPatterns: [],
+      menstrualPatterns: [],
+      flowTrends: {
+        averageDuration: settings.avgPeriodDuration || 5,
+        predominantFlow: 'medium',
+        durationVariation: 'Awaiting user recorded periods'
+      },
+      painInsights: {
+        mostCommonPain: 'None recorded',
+        predominantSeverity: 'none',
+        frequentMedications: []
+      },
+      medicalDisclaimer: 'Health insights summarize recorded entries and cannot diagnose medical conditions such as endometriosis, PCOS, or fibroids. Consult a healthcare provider for medical concerns.',
+      urgentCareGuidance: 'Seek prompt emergency medical care if you experience sudden severe pelvic pain, abnormally heavy bleeding (soaking through 2+ pads/hour for 2+ hours), fainting, or high fever.'
+    };
+  }
+
+  // Date range covered
+  const firstCycle = sortedCycles[0];
+  const lastCycle = sortedCycles[sortedCycles.length - 1];
+  const firstDate = firstCycle ? parseDateStr(firstCycle.startDate) : new Date();
+  const lastDate = lastCycle ? parseDateStr(lastCycle.startDate) : new Date();
+  const dateRangeCovered = `${firstDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} – ${lastDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+
+  // 1. Analyze symptoms per cycle (Menstrual vs Pre-menstrual)
+  const symptomCycleMap: Record<Symptom, Set<string>> = {} as any;
+  const symptomTotalCount: Record<Symptom, number> = {} as any;
+  const symptomPreMenstrualCount: Record<Symptom, number> = {} as any;
+  const symptomMenstrualCount: Record<Symptom, number> = {} as any;
+  const symptomSeverityMap: Record<Symptom, Record<PainSeverity, number>> = {} as any;
+
+  allSymptoms.forEach(s => {
+    symptomCycleMap[s] = new Set<string>();
+    symptomTotalCount[s] = 0;
+    symptomPreMenstrualCount[s] = 0;
+    symptomMenstrualCount[s] = 0;
+    symptomSeverityMap[s] = { none: 0, mild: 0, moderate: 0, severe: 0 };
+  });
+
+  const medicationsCount: Record<string, number> = {};
+
+  // Map each log date to its corresponding cycle and phase
+  logEntries.forEach(log => {
+    const logDate = parseDateStr(log.date);
+
+    // Track medication
+    if (log.medication && log.medication.taken && log.medication.name) {
+      const name = log.medication.name.trim();
+      medicationsCount[name] = (medicationsCount[name] || 0) + 1;
+    }
+
+    // Identify which cycle this log belongs to
+    let matchingCycleId = '';
+    let isDuringPeriod = log.isPeriod;
+    let isPreMenstrual = false;
+
+    for (const c of sortedCycles) {
+      const cStart = parseDateStr(c.startDate);
+      const cEnd = c.endDate ? parseDateStr(c.endDate) : addDays(cStart, (c.periodDuration || 5) - 1);
+      const preStart = addDays(cStart, -7);
+
+      if (logDate >= cStart && logDate <= cEnd) {
+        matchingCycleId = c.id;
+        isDuringPeriod = true;
+        break;
+      } else if (logDate >= preStart && logDate < cStart) {
+        matchingCycleId = c.id;
+        isPreMenstrual = true;
+        break;
+      }
+    }
+
+    // Log symptoms
+    (log.symptoms || []).forEach(sym => {
+      if (symptomTotalCount[sym] !== undefined) {
+        symptomTotalCount[sym] += 1;
+        if (matchingCycleId) {
+          symptomCycleMap[sym].add(matchingCycleId);
+        }
+        if (isDuringPeriod) {
+          symptomMenstrualCount[sym] += 1;
+        } else if (isPreMenstrual) {
+          symptomPreMenstrualCount[sym] += 1;
+        }
+
+        // Track pain severity
+        const severity = log.overallPain || (log.painLevels ? (log.painLevels as any)[sym] : undefined) || 'mild';
+        if (symptomSeverityMap[sym]) {
+          symptomSeverityMap[sym][severity as PainSeverity] = (symptomSeverityMap[sym][severity as PainSeverity] || 0) + 1;
+        }
+      }
+    });
+  });
+
+  // Calculate symptom frequencies
+  const cyclesCount = Math.max(1, sortedCycles.length);
+  const frequentSymptoms: SymptomFrequency[] = allSymptoms
+    .map(sym => {
+      const count = symptomTotalCount[sym];
+      const cycleHits = symptomCycleMap[sym].size;
+      const pct = Math.round((cycleHits / cyclesCount) * 100);
+      const preCount = symptomPreMenstrualCount[sym];
+      const menCount = symptomMenstrualCount[sym];
+      const typicalPhase: CyclePhase = preCount > menCount ? 'luteal' : 'menstrual';
+
+      return {
+        symptom: sym,
+        count,
+        cyclesCount: cycleHits,
+        percentageOfCycles: pct,
+        typicalPhase,
+        preMenstrualCount: preCount,
+        menstrualCount: menCount,
+        severityBreakdown: symptomSeverityMap[sym]
+      };
+    })
+    .filter(s => s.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  // 2. Generate factual, non-alarmist patterns
+  const recurringCyclePatterns: string[] = [];
+  const preMenstrualPatterns: string[] = [];
+  const menstrualPatterns: string[] = [];
+
+  frequentSymptoms.forEach(sf => {
+    const symLabel = sf.symptom.replace('_', ' ');
+    if (sf.cyclesCount >= 2 && sortedCycles.length >= 2) {
+      recurringCyclePatterns.push(
+        `${symLabel.charAt(0).toUpperCase() + symLabel.slice(1)} recorded in ${sf.cyclesCount} of your last ${sortedCycles.length} recorded cycles (${sf.percentageOfCycles}%).`
+      );
+    }
+
+    if (sf.preMenstrualCount >= 2) {
+      preMenstrualPatterns.push(
+        `${symLabel.charAt(0).toUpperCase() + symLabel.slice(1)} frequently recorded during the pre-menstrual (luteal) phase (${sf.preMenstrualCount} times).`
+      );
+    }
+
+    if (sf.menstrualCount >= 2) {
+      menstrualPatterns.push(
+        `${symLabel.charAt(0).toUpperCase() + symLabel.slice(1)} prominently recorded during menstruation (${sf.menstrualCount} times).`
+      );
+    }
+  });
+
+  if (recurringCyclePatterns.length === 0 && frequentSymptoms.length > 0) {
+    recurringCyclePatterns.push(
+      `Most reported symptom in your available logs: ${frequentSymptoms[0].symptom.replace('_', ' ')} (${frequentSymptoms[0].count} logs).`
+    );
+  }
+
+  // 3. Flow trends
+  const periodDurations = sortedCycles.filter(c => c.periodDuration).map(c => c.periodDuration!);
+  const avgDuration = periodDurations.length > 0
+    ? Math.round(periodDurations.reduce((a, b) => a + b, 0) / periodDurations.length)
+    : settings.avgPeriodDuration || 5;
+
+  const shortestBleed = periodDurations.length > 0 ? Math.min(...periodDurations) : avgDuration;
+  const longestBleed = periodDurations.length > 0 ? Math.max(...periodDurations) : avgDuration;
+
+  // Flow count
+  const flowCounts: Record<FlowIntensity, number> = { none: 0, spotting: 0, light: 0, medium: 0, heavy: 0 };
+  logEntries.forEach(l => {
+    if (l.flow && l.flow !== 'none') {
+      flowCounts[l.flow] = (flowCounts[l.flow] || 0) + 1;
+    }
+  });
+
+  let predominantFlow: FlowIntensity = 'medium';
+  let maxFlowCount = 0;
+  (['heavy', 'medium', 'light', 'spotting'] as FlowIntensity[]).forEach(f => {
+    if (flowCounts[f] > maxFlowCount) {
+      maxFlowCount = flowCounts[f];
+      predominantFlow = f;
+    }
+  });
+
+  // 4. Pain Insights
+  const topPainSymptom = frequentSymptoms.find(s => ['cramps', 'headache', 'backache', 'pelvic_pain'].includes(s.symptom));
+  const frequentMedications = Object.keys(medicationsCount).sort((a, b) => medicationsCount[b] - medicationsCount[a]);
+
+  return {
+    totalCyclesAnalyzed: sortedCycles.length,
+    totalLoggedDays,
+    dateRangeCovered,
+    frequentSymptoms,
+    recurringCyclePatterns,
+    preMenstrualPatterns,
+    menstrualPatterns,
+    flowTrends: {
+      averageDuration: avgDuration,
+      predominantFlow,
+      durationVariation: periodDurations.length >= 2 ? `${shortestBleed} to ${longestBleed} days span` : 'Consistent'
+    },
+    painInsights: {
+      mostCommonPain: topPainSymptom ? topPainSymptom.symptom.replace('_', ' ') : 'Mild cramps',
+      predominantSeverity: 'moderate',
+      frequentMedications: frequentMedications.slice(0, 3)
+    },
+    medicalDisclaimer: 'Health insights summarize your recorded entries to identify recurring patterns for personal awareness and clinical discussion. This app cannot diagnose conditions such as endometriosis, PCOS, or fibroids. Consult your healthcare provider if symptoms worsen or interfere with daily life.',
+    urgentCareGuidance: 'Urgent Care Notice: Please seek prompt medical care if you experience sudden or debilitating pelvic pain, fever, fainting, or unusually heavy bleeding (soaking 2+ pads per hour for consecutive hours).'
+  };
+}
+
+/**
+ * Dynamically anchors starter seed data relative to user's real date.
  */
 export function getInitialSeedData() {
   const today = new Date();
@@ -463,7 +907,6 @@ export function getInitialSeedData() {
     pinCode: '1234'
   };
 
-  // Seed 2 completed historical cycles and 1 current cycle relative to today
   const c3Start = addDays(today, -4);
   const c3End = addDays(c3Start, 4);
 
@@ -479,6 +922,11 @@ export function getInitialSeedData() {
       startDate: formatDateStr(c3Start),
       endDate: formatDateStr(c3End),
       periodDuration: 5,
+      flow: 'medium',
+      symptoms: ['cramps', 'fatigue'],
+      painSeverity: 'moderate',
+      medications: ['Ibuprofen'],
+      notes: 'Current menstrual period',
       isOngoing: true
     },
     {
@@ -486,6 +934,11 @@ export function getInitialSeedData() {
       startDate: formatDateStr(c2Start),
       endDate: formatDateStr(c2End),
       periodDuration: 5,
+      flow: 'heavy',
+      symptoms: ['cramps', 'bloating', 'headache'],
+      painSeverity: 'moderate',
+      medications: ['Heat Therapy'],
+      notes: 'Previous month regular cycle',
       isOngoing: false
     },
     {
@@ -493,6 +946,10 @@ export function getInitialSeedData() {
       startDate: formatDateStr(c1Start),
       endDate: formatDateStr(c1End),
       periodDuration: 5,
+      flow: 'medium',
+      symptoms: ['cramps', 'tender_breasts'],
+      painSeverity: 'mild',
+      notes: 'Historical cycle record',
       isOngoing: false
     }
   ];
@@ -510,10 +967,12 @@ export function getInitialSeedData() {
     flow: 'medium',
     symptoms: ['cramps', 'fatigue'],
     moods: ['sensitive'],
+    overallPain: 'moderate',
+    medication: { taken: true, name: 'Ibuprofen' },
     waterGlasses: 7,
     sleepHours: 8,
     pillTaken: true,
-    notes: 'Period started morning. Mild cramps.'
+    notes: 'Period started morning. Mild-to-moderate cramps.'
   };
 
   logs[day1] = {
@@ -522,22 +981,52 @@ export function getInitialSeedData() {
     flow: 'heavy',
     symptoms: ['cramps', 'bloating'],
     moods: ['calm'],
+    overallPain: 'moderate',
+    medication: { taken: true, name: 'Heat Therapy' },
     waterGlasses: 8,
     sleepHours: 8,
     pillTaken: true,
-    notes: 'Warm herbal tea and rest.'
+    notes: 'Warm herbal tea and rest helped.'
   };
 
   logs[day2] = {
     date: day2,
     isPeriod: true,
     flow: 'medium',
-    symptoms: [],
+    symptoms: ['fatigue'],
     moods: ['calm', 'happy'],
+    overallPain: 'mild',
     waterGlasses: 7,
     sleepHours: 8,
     pillTaken: true,
-    notes: 'Flow steady, feeling balanced.'
+    notes: 'Flow tapering nicely, feeling balanced.'
+  };
+
+  // Add historical logs for c-2 to illustrate recurring symptoms
+  const prevPmsDay = formatDateStr(addDays(c2Start, -2));
+  logs[prevPmsDay] = {
+    date: prevPmsDay,
+    isPeriod: false,
+    symptoms: ['headache', 'tender_breasts', 'bloating'],
+    moods: ['irritable', 'sensitive'],
+    overallPain: 'mild',
+    waterGlasses: 6,
+    sleepHours: 7.5,
+    notes: 'Pre-menstrual tension observed.'
+  };
+
+  const prevBleedDay = formatDateStr(c2Start);
+  logs[prevBleedDay] = {
+    date: prevBleedDay,
+    isPeriod: true,
+    flow: 'heavy',
+    symptoms: ['cramps', 'backache', 'fatigue'],
+    moods: ['exhausted'],
+    overallPain: 'moderate',
+    medication: { taken: true, name: 'Ibuprofen' },
+    waterGlasses: 8,
+    sleepHours: 8,
+    notes: 'Cramps on day 1.'
   };
 
   return { settings, cycles, logs };

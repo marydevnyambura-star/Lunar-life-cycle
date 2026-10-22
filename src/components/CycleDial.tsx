@@ -47,7 +47,7 @@ export const CycleDial: React.FC<CycleDialProps> = ({
   const indicatorX = center + radius * Math.cos(currentAngleRad);
   const indicatorY = center + radius * Math.sin(currentAngleRad);
 
-  // Phase color definitions & lively ambience
+  // Phase color definitions & lively ambience in Purple & Pink
   const phaseThemes: Record<CyclePhase, {
     stroke: string;
     bgGlow: string;
@@ -58,39 +58,39 @@ export const CycleDial: React.FC<CycleDialProps> = ({
     icon: string;
   }> = {
     menstrual: {
-      stroke: '#F43F5E',
-      bgGlow: 'from-rose-500/10 via-pink-500/5 to-transparent',
-      text: 'text-rose-600',
-      badgeBg: 'bg-rose-100 text-rose-700 border-rose-200',
+      stroke: '#EC4899', // Bright Pink
+      bgGlow: 'from-pink-500/15 via-purple-500/5 to-transparent',
+      text: 'text-[#EC4899]',
+      badgeBg: 'bg-[#FCE7F3] text-pink-700 border-pink-300',
       label: privacyMode ? 'Phase 1 · Flow' : 'Menstrual Phase',
-      vibe: 'Rest & Replenish',
+      vibe: 'Rest & Restore',
       icon: '🩸'
     },
     follicular: {
-      stroke: '#8B5CF6',
-      bgGlow: 'from-violet-500/10 via-indigo-500/5 to-transparent',
-      text: 'text-violet-600',
-      badgeBg: 'bg-violet-100 text-violet-700 border-violet-200',
+      stroke: '#C8A2E8', // Lavender
+      bgGlow: 'from-purple-500/15 via-lavender-500/5 to-transparent',
+      text: 'text-[#7B2CBF]',
+      badgeBg: 'bg-purple-100 text-[#542080] border-[#C8A2E8]',
       label: privacyMode ? 'Phase 2 · Rising' : 'Follicular Phase',
       vibe: 'Vitality & Creative Spark',
       icon: '🌱'
     },
     ovulation: {
-      stroke: '#F59E0B',
-      bgGlow: 'from-amber-500/15 via-orange-500/5 to-transparent',
-      text: 'text-amber-600',
-      badgeBg: 'bg-amber-100 text-amber-800 border-amber-200',
+      stroke: '#F59E0B', // Gold / Amber
+      bgGlow: 'from-amber-500/15 via-pink-500/5 to-transparent',
+      text: 'text-amber-700',
+      badgeBg: 'bg-amber-100 text-amber-900 border-amber-200',
       label: privacyMode ? 'Phase 3 · Peak' : 'Ovulatory Phase',
-      vibe: 'Peak Confidence & Fertility',
+      vibe: 'Peak Confidence & Energy',
       icon: '✨'
     },
     luteal: {
-      stroke: '#0D9488',
-      bgGlow: 'from-teal-500/10 via-emerald-500/5 to-transparent',
-      text: 'text-teal-600',
-      badgeBg: 'bg-teal-100 text-teal-800 border-teal-200',
+      stroke: '#7B2CBF', // Royal Purple
+      bgGlow: 'from-purple-600/15 via-pink-500/5 to-transparent',
+      text: 'text-[#7B2CBF]',
+      badgeBg: 'bg-purple-50 text-[#542080] border-purple-200',
       label: privacyMode ? 'Phase 4 · Grounding' : 'Luteal Phase',
-      vibe: 'Focus, Calm & Cozy',
+      vibe: 'Focus & Replenish',
       icon: '🌿'
     }
   };
@@ -115,8 +115,8 @@ export const CycleDial: React.FC<CycleDialProps> = ({
   const lutealArc = getArc(Math.min(totalCycleDays, ovulationCycleDay + 2), totalCycleDays);
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-6 sm:p-7 bg-white rounded-3xl border border-stone-200 shadow-sm max-w-lg mx-auto w-full overflow-hidden transition-all duration-300 hover:shadow-md">
-      {/* Dynamic lively ambient radial backdrop */}
+    <div className="relative flex flex-col items-center justify-center p-6 sm:p-7 bg-white rounded-3xl border border-[#C8A2E8]/40 shadow-xs max-w-lg mx-auto w-full overflow-hidden transition-all duration-300 hover:shadow-md">
+      {/* Dynamic ambient radial backdrop */}
       <div className={`absolute inset-0 bg-radial ${currentTheme.bgGlow} pointer-events-none transition-colors duration-700`} />
 
       {/* Top Lively Phase Chip */}
@@ -141,30 +141,30 @@ export const CycleDial: React.FC<CycleDialProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#F1EFEA"
+            stroke="#F6F0FC"
             strokeWidth={strokeWidth}
           />
 
-          {/* Menstrual Phase Arc (Rose) */}
+          {/* Menstrual Phase Arc (Bright Pink) */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="#FB7185" // rose-400
+            stroke="#EC4899"
             strokeWidth={strokeWidth}
             strokeDasharray={menstrualArc.strokeDasharray}
             strokeDashoffset={menstrualArc.strokeDashoffset}
             strokeLinecap="round"
           />
 
-          {/* Follicular Phase Arc (Violet) */}
+          {/* Follicular Phase Arc (Lavender) */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="#C4B5FD" // violet-300
+            stroke="#C8A2E8"
             strokeWidth={strokeWidth}
             strokeDasharray={follicularArc.strokeDasharray}
             strokeDashoffset={follicularArc.strokeDashoffset}
@@ -176,25 +176,25 @@ export const CycleDial: React.FC<CycleDialProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#FBBF24" // amber-400
+            stroke="#FBBF24"
             strokeWidth={strokeWidth}
             strokeDasharray={fertileArc.strokeDasharray}
             strokeDashoffset={fertileArc.strokeDashoffset}
           />
 
-          {/* Luteal Phase Arc (Teal) */}
+          {/* Luteal Phase Arc (Royal Purple) */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="#5EEAD4" // teal-300
+            stroke="#7B2CBF"
             strokeWidth={strokeWidth}
             strokeDasharray={lutealArc.strokeDasharray}
             strokeDashoffset={lutealArc.strokeDashoffset}
           />
 
-          {/* Active progress indicator bead with lively glow ring */}
+          {/* Active progress indicator bead with glow ring */}
           <circle
             cx={indicatorX}
             cy={indicatorY}
@@ -216,12 +216,12 @@ export const CycleDial: React.FC<CycleDialProps> = ({
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-          <span className="text-[11px] font-bold tracking-wider uppercase text-stone-600 mb-0.5">
+          <span className="text-[11px] font-bold tracking-wider uppercase text-[#7B2CBF] mb-0.5">
             CYCLE TRACKER
           </span>
 
           <div className="flex items-baseline justify-center gap-1.5">
-            <span className="font-display text-4xl sm:text-5xl font-black tracking-tight text-stone-900 tabular-nums">
+            <span className="font-display text-4xl sm:text-5xl font-black tracking-tight text-[#321442] tabular-nums">
               Day {cycleDay}
             </span>
           </div>
@@ -234,10 +234,10 @@ export const CycleDial: React.FC<CycleDialProps> = ({
               : `Next period in ${daysUntilNextPeriod} days`}
           </p>
 
-          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 border border-stone-200/80 text-[11px] text-stone-700 shadow-2xs">
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-100" />
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F6F0FC] border border-[#C8A2E8]/50 text-[11px] text-[#542080] shadow-2xs">
+            <Heart className="w-3.5 h-3.5 text-[#EC4899] fill-pink-200" />
             <span>Conception chance: </span>
-            <span className="font-bold text-stone-900">{conceptionChance}</span>
+            <span className="font-bold text-[#321442]">{conceptionChance}</span>
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@ export const CycleDial: React.FC<CycleDialProps> = ({
       <div className="w-full mt-5 space-y-2.5">
         <button
           onClick={onOpenRecordPeriodStart}
-          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-pink-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-rose-200/80 hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
+          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#542080] via-[#7B2CBF] to-[#EC4899] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-purple-300/60 hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
         >
           <Droplets className="w-4 h-4 fill-white" />
           <span>Record When Period Started</span>
@@ -256,34 +256,34 @@ export const CycleDial: React.FC<CycleDialProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onTogglePeriodQuick}
-            className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
+            className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer ${
               isPeriodToday
-                ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
-                : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100 hover:text-stone-900'
+                ? 'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100'
+                : 'bg-[#F6F0FC] text-[#542080] border-[#C8A2E8]/50 hover:bg-purple-100'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span className="w-2 h-2 rounded-full bg-[#EC4899]" />
             <span>{isPeriodToday ? 'Mark Bleed Ended' : 'Quick Today Flow'}</span>
           </button>
 
           <button
             onClick={onOpenLog}
-            className="py-2 px-3 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-2xs"
+            className="py-2 px-3 rounded-xl text-xs font-semibold bg-[#542080] text-white hover:bg-[#7B2CBF] transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
           >
-            <Activity className="w-3.5 h-3.5 text-rose-400" />
+            <Activity className="w-3.5 h-3.5 text-pink-300" />
             <span>Log Symptoms</span>
           </button>
         </div>
       </div>
 
       {/* Lively Phase Ticks */}
-      <div className="mt-5 w-full pt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-600 px-1 font-medium">
+      <div className="mt-5 w-full pt-4 border-t border-purple-100 flex items-center justify-between text-[11px] text-stone-600 px-1 font-medium">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#EC4899]"></span>
           <span>Menstrual</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#C8A2E8]"></span>
           <span>Follicular</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -291,7 +291,7 @@ export const CycleDial: React.FC<CycleDialProps> = ({
           <span>Ovulation</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#7B2CBF]"></span>
           <span>Luteal</span>
         </div>
       </div>

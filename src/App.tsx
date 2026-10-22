@@ -27,6 +27,7 @@ import { TodayDashboard } from './components/TodayDashboard';
 import { CalendarSection } from './components/CalendarSection';
 import { HormonePhasesGuide } from './components/HormonePhasesGuide';
 import { CycleHistoryView } from './components/CycleHistoryView';
+import { HealthInsightsSection } from './components/HealthInsightsSection';
 import { MyProfileView } from './components/MyProfileView';
 import { SettingsAndPrivacy } from './components/SettingsAndPrivacy';
 import { DailyLoggerModal } from './components/DailyLoggerModal';
@@ -41,13 +42,14 @@ import {
   addDays,
   getCurrentCycleStatus,
   getLocalTodayStr,
-  recalculateAllCycles
+  recalculateAllCycles,
+  generateHealthInsights
 } from './utils/cycleCalculations';
 import { UserSettings, CycleRecord, DailyLog, FlowIntensity, Symptom, Mood } from './types';
 import { Sparkles, Heart } from 'lucide-react';
 
 export default function App() {
-  // Automatically detected local current date (e.g. Wednesday, 21st October 2026)
+  // Automatically detected local current date (updates daily in real time)
   const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalTodayStr());
 
   // Automatic daily rollover and local timezone synchronization
@@ -76,8 +78,8 @@ export default function App() {
   const [cycles, setCycles] = useState<CycleRecord[]>([]);
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'phases' | 'history' | 'profile' | 'settings'>('today');
+  // Navigation tab state (including dedicated health insights)
+  const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'insights' | 'phases' | 'history' | 'profile' | 'settings'>('today');
 
   // Passcode Lock state (if enabled in settings)
   const [isLocked, setIsLocked] = useState<boolean>(false);
@@ -222,7 +224,10 @@ export default function App() {
       startDate: data.startDate,
       endDate: data.endDate,
       periodDuration: data.periodDuration,
-      isOngoing: false
+      isOngoing: false,
+      flow: data.flow,
+      symptoms: data.symptoms,
+      notes: data.notes
     };
 
     // Combine with other cycles and recalculate cycle length between all period start dates
@@ -273,7 +278,7 @@ export default function App() {
 
     showLivelyToast(
       data.id ? 'Period record updated' : `Period recorded: ${data.startDate}`,
-      'Cycle length to next period and predictions recalibrated!'
+      'Cycle intelligence and future predictions recalibrated!'
     );
   };
 
@@ -341,7 +346,8 @@ export default function App() {
           id: `c-${Date.now()}`,
           startDate: newLog.date,
           periodDuration: settings.avgPeriodDuration,
-          isOngoing: true
+          isOngoing: true,
+          flow: newLog.flow
         };
         const recalculated = recalculateAllCycles([newRecord, ...cycles], settings.avgPeriodDuration);
         setCycles(recalculated);
@@ -462,7 +468,7 @@ export default function App() {
     await saveUserSettingsToDb(currentUser.uid, updated);
   };
 
-  // Reset to Demo Data in User's Private Cloud Storage
+  // Reset to Starter Data in User's Private Cloud Storage
   const handleResetData = async () => {
     if (!currentUser) return;
     const seed = getInitialSeedData();
@@ -503,12 +509,15 @@ export default function App() {
   // 1. Initial Auth Loading Screen
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-3xl bg-rose-500 animate-pulse flex items-center justify-center text-white mb-3 shadow-md shadow-rose-200">
-          <Sparkles className="w-6 h-6" />
+      <div className="min-h-screen bg-[#F6F0FC] flex flex-col items-center justify-center p-4">
+        <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-[#7B2CBF] to-[#EC4899] animate-pulse flex items-center justify-center text-white mb-4 shadow-lg shadow-purple-200">
+          <Sparkles className="w-7 h-7" />
         </div>
-        <p className="text-xs font-semibold text-stone-600">
-          Preparing your private cycle sanctuary...
+        <p className="text-sm font-bold text-[#542080]">
+          LumaCycle
+        </p>
+        <p className="text-xs text-[#7B2CBF]/80 mt-1">
+          Opening your private menstrual sanctuary...
         </p>
       </div>
     );
@@ -521,7 +530,7 @@ export default function App() {
 
   // 3. Authenticated Personal Dashboard
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 flex flex-col antialiased selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-[#F6F0FC] text-[#321442] flex flex-col antialiased selection:bg-[#FCE7F3] selection:text-[#542080]">
       {/* Passcode Lock Screen when protected */}
       {isLocked && (
         <PinLockModal
@@ -544,21 +553,21 @@ export default function App() {
 
       {/* Loading overlay for database sync */}
       {dataLoading && (
-        <div className="bg-rose-50 border-b border-rose-200 py-1.5 px-4 text-center text-xs text-rose-700 flex items-center justify-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 animate-spin text-rose-500" />
-          <span>Synchronizing your private health records...</span>
+        <div className="bg-[#FCE7F3] border-b border-[#EC4899]/20 py-1.5 px-4 text-center text-xs text-[#542080] flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 animate-spin text-[#EC4899]" />
+          <span>Synchronizing your intimate health records...</span>
         </div>
       )}
 
       {/* Lively Toast Notification */}
       {livelyToast && (
-        <div className="fixed top-20 right-4 sm:right-8 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-start gap-3 border border-stone-800 animate-fade-in max-w-sm">
-          <div className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mt-0.5 shrink-0">
-            <Heart className="w-3.5 h-3.5 fill-rose-500" />
+        <div className="fixed top-20 right-4 sm:right-8 z-50 bg-[#321442] text-white px-4 py-3 rounded-2xl shadow-xl flex items-start gap-3 border border-[#C8A2E8]/40 animate-fade-in max-w-sm">
+          <div className="w-6 h-6 rounded-full bg-[#EC4899]/20 text-[#EC4899] flex items-center justify-center mt-0.5 shrink-0">
+            <Heart className="w-3.5 h-3.5 fill-[#EC4899]" />
           </div>
           <div className="text-xs">
             <p className="font-bold text-white">{livelyToast.message}</p>
-            {livelyToast.sub && <p className="text-stone-300 text-[11px] mt-0.5">{livelyToast.sub}</p>}
+            {livelyToast.sub && <p className="text-purple-200 text-[11px] mt-0.5">{livelyToast.sub}</p>}
           </div>
         </div>
       )}
@@ -591,6 +600,32 @@ export default function App() {
             onOpenLogForDate={handleOpenLogger}
             onOpenRecordPeriodForDate={(dateStr, cycleToEdit) => handleOpenRecordPeriod(dateStr, cycleToEdit)}
           />
+        )}
+
+        {activeTab === 'insights' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#321442] tracking-tight">
+                  Menstrual Health Intelligence
+                </h1>
+                <p className="text-xs sm:text-sm text-[#7B2CBF]/80 mt-1">
+                  Personalized patterns, recurring symptoms, and cycle variance computed directly from your history.
+                </p>
+              </div>
+              <button
+                onClick={() => handleOpenRecordPeriod(currentDateStr)}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#7B2CBF] to-[#542080] hover:from-[#542080] hover:to-[#321442] text-white text-xs font-semibold shadow-sm shadow-purple-200 flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-[#FCE7F3]" />
+                <span>Record Period Dates</span>
+              </button>
+            </div>
+            <HealthInsightsSection
+              insights={generateHealthInsights(cycles, logs, settings)}
+              onNavigateToHistory={() => setActiveTab('history')}
+            />
+          </div>
         )}
 
         {activeTab === 'phases' && (

@@ -145,23 +145,23 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 flex flex-col justify-between selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-[#F6F0FC] text-[#321442] flex flex-col justify-between selection:bg-[#FCE7F3] selection:text-[#542080]">
       {/* Top Simple Header */}
       <header className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-sm shadow-rose-200">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#542080] via-[#7B2CBF] to-[#EC4899] flex items-center justify-center text-white shadow-sm shadow-purple-300">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4 stroke-[2.2]">
               <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
               <path d="M12 7c-2 2-3 4-3 6a3 3 0 0 0 6 0c0-2-1-4-3-6Z" fill="currentColor" />
             </svg>
           </div>
-          <span className="font-display text-xl font-bold tracking-tight text-stone-900">
+          <span className="font-display text-xl font-bold tracking-tight text-[#321442]">
             LumaCycle
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-stone-600 bg-stone-100/80 px-3 py-1.5 rounded-full border border-stone-200">
-          <Lock className="w-3.5 h-3.5 text-emerald-600" />
+        <div className="flex items-center gap-2 text-xs text-[#542080] bg-white px-3 py-1.5 rounded-full border border-[#C8A2E8]/40 shadow-xs">
+          <Lock className="w-3.5 h-3.5 text-[#7B2CBF]" />
           <span>Strict Privacy & Isolation</span>
         </div>
       </header>
@@ -170,55 +170,55 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
       <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-1 flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16">
         {/* Left Column: Welcoming Value Proposition */}
         <div className="flex-1 max-w-xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Privacy-First Menstrual & Fertility Companion</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-[#C8A2E8]/50 text-[#542080] text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-[#EC4899]" />
+            <span>Privacy-First Menstrual & Fertility Intelligence</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-bold font-display tracking-tight text-stone-900 leading-[1.15]">
+          <h1 className="text-3xl sm:text-5xl font-extrabold font-display tracking-tight text-[#321442] leading-[1.15]">
             Tune into your natural biological rhythm.
           </h1>
 
           <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
-            LumaCycle is an intuitive, clinical-grade menstrual cycle, ovulation, and reproductive health tracker.
-            Understand your four hormonal phases, log daily symptoms, and plan ahead with complete confidentiality.
+            LumaCycle is an intuitive, clinical-grade menstrual cycle, ovulation, and reproductive health companion.
+            Learn your recurring symptoms, predict future cycle windows with adaptive intelligence, and track your health with complete confidentiality.
           </p>
 
           {/* Privacy & Health Highlights */}
           <div className="space-y-3 pt-2">
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mt-0.5 shrink-0">
+              <div className="w-5 h-5 rounded-full bg-purple-100 text-[#7B2CBF] flex items-center justify-center mt-0.5 shrink-0">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
               <p className="text-xs sm:text-sm text-stone-700">
-                <strong className="text-stone-900">Zero Public Exposure:</strong> Your cycles, notes, and symptoms are stored in isolated cloud records bound strictly to your verified account. User A never sees User B's health records.
+                <strong className="text-[#321442]">Zero Cross-User Exposure:</strong> Your cycles, notes, and pain logs are stored in private database records bound strictly to your verified account. User A never sees User B's health records.
               </p>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mt-0.5 shrink-0">
+              <div className="w-5 h-5 rounded-full bg-pink-100 text-[#EC4899] flex items-center justify-center mt-0.5 shrink-0">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
               <p className="text-xs sm:text-sm text-stone-700">
-                <strong className="text-stone-900">Multi-Device Cloud Sync:</strong> Securely sign in across your phone, tablet, and computer without ever losing your tracking history.
+                <strong className="text-[#321442]">Intelligent Prediction Engine:</strong> Learns your actual average cycle length, accounts for variability, and detects early or late cycles without arbitrary assumptions.
               </p>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mt-0.5 shrink-0">
+              <div className="w-5 h-5 rounded-full bg-purple-100 text-[#7B2CBF] flex items-center justify-center mt-0.5 shrink-0">
                 <Heart className="w-3.5 h-3.5" />
               </div>
               <p className="text-xs sm:text-sm text-stone-700">
-                <strong className="text-stone-900">Full Data Sovereignty:</strong> Export your complete records anytime or delete your account and personal history permanently with a single tap.
+                <strong className="text-[#321442]">Complete Data Sovereignty:</strong> Export your full records anytime or delete your account and personal history permanently with a single tap.
               </p>
             </div>
           </div>
         </div>
 
         {/* Right Column: Secure Authentication Card */}
-        <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-lg shadow-stone-200/50 space-y-6">
+        <div className="w-full max-w-md bg-white rounded-3xl border border-[#C8A2E8]/40 p-6 sm:p-8 shadow-xl shadow-purple-100 space-y-6">
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold font-display text-stone-900">
+            <h2 className="text-xl font-bold font-display text-[#321442]">
               {authMode === 'email_register'
                 ? 'Create Your Account'
                 : authMode === 'forgot_password'
@@ -232,15 +232,15 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
 
           {/* Feedback messages */}
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div className="p-3 bg-pink-50 border border-pink-200 rounded-xl text-xs text-pink-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-pink-600 mt-0.5 shrink-0" />
               <div className="flex-1">{errorMsg}</div>
             </div>
           )}
 
           {infoMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#7B2CBF] mt-0.5 shrink-0" />
               <div className="flex-1">{infoMsg}</div>
             </div>
           )}
@@ -251,7 +251,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3.5 px-4 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 active:scale-[0.98] transition-all flex items-center justify-center gap-3 font-medium text-stone-800 text-sm shadow-xs hover:border-stone-400 disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-xl border border-[#C8A2E8]/60 bg-white hover:bg-purple-50 active:scale-[0.98] transition-all flex items-center justify-center gap-3 font-semibold text-[#321442] text-sm shadow-xs hover:border-[#7B2CBF] disabled:opacity-50 cursor-pointer"
             >
               {/* Google G logo */}
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -272,23 +272,24 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
+              <span>{loading ? 'Connecting...' : 'Continue with Google'}</span>
             </button>
+
+            <div className="relative flex items-center justify-center py-2">
+              <div className="border-t border-purple-100 w-full"></div>
+              <span className="bg-white px-3 text-xs text-stone-400 font-medium uppercase tracking-wider">
+                or
+              </span>
+              <div className="border-t border-purple-100 w-full"></div>
+            </div>
           </div>
 
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-stone-200 w-full"></div>
-            <span className="bg-white px-3 text-[11px] uppercase tracking-wider text-stone-600 font-semibold">
-              or use email
-            </span>
-          </div>
-
-          {/* Email Login / Registration Forms */}
+          {/* Secondary: Email/Password Forms */}
           {authMode === 'forgot_password' ? (
-            <form onSubmit={handlePasswordReset} className="space-y-4">
+            <form onSubmit={handlePasswordReset} className="space-y-3.5">
               <div>
                 <label className="text-xs font-semibold text-stone-700 block mb-1">
-                  Email Address
+                  Your Account Email
                 </label>
                 <input
                   type="email"
@@ -296,14 +297,14 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2.5 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-stone-900 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-stone-800 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-[#542080] text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-[#7B2CBF] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Sending link...' : 'Send Password Reset Link'}
               </button>
@@ -315,7 +316,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                     setErrorMsg(null);
                     setAuthMode('email_login');
                   }}
-                  className="text-xs text-stone-500 hover:text-stone-900 font-medium"
+                  className="text-xs text-[#7B2CBF] hover:underline font-semibold cursor-pointer"
                 >
                   Back to login
                 </button>
@@ -333,7 +334,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                 />
               </div>
 
@@ -348,7 +349,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                   />
                   <button
                     type="button"
@@ -370,14 +371,14 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-rose-600 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-rose-700 transition-colors shadow-sm shadow-rose-200 disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-[#542080] to-[#7B2CBF] text-white rounded-xl text-xs sm:text-sm font-bold hover:brightness-105 transition-colors shadow-md shadow-purple-200 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Creating account...' : 'Create Free Account'}
               </button>
@@ -390,7 +391,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                     setErrorMsg(null);
                     setAuthMode('email_login');
                   }}
-                  className="text-xs text-rose-600 font-semibold hover:underline"
+                  className="text-xs text-[#7B2CBF] font-semibold hover:underline cursor-pointer"
                 >
                   Log in
                 </button>
@@ -408,7 +409,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                 />
               </div>
 
@@ -423,7 +424,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                       setErrorMsg(null);
                       setAuthMode('forgot_password');
                     }}
-                    className="text-[11px] text-stone-500 hover:text-stone-900"
+                    className="text-[11px] text-[#7B2CBF] hover:underline cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -435,7 +436,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    className="w-full px-3.5 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/40 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                   />
                   <button
                     type="button"
@@ -450,7 +451,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-stone-900 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-stone-800 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-[#542080] text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-[#7B2CBF] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Signing in...' : 'Log In with Email'}
               </button>
@@ -463,7 +464,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
                     setErrorMsg(null);
                     setAuthMode('email_register');
                   }}
-                  className="text-xs text-rose-600 font-semibold hover:underline"
+                  className="text-xs text-[#7B2CBF] font-semibold hover:underline cursor-pointer"
                 >
                   Create one now
                 </button>
@@ -472,7 +473,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
           )}
 
           {/* Privacy & Medical Disclaimer */}
-          <div className="pt-4 border-t border-stone-100 text-[11px] text-stone-400 leading-relaxed text-center space-y-1.5">
+          <div className="pt-4 border-t border-purple-50 text-[11px] text-stone-500 leading-relaxed text-center space-y-1.5">
             <p>
               By proceeding, you agree to our private health data protection terms.
               We adhere strictly to privacy-by-design standards (including Kenya's Data Protection Act).
@@ -485,7 +486,7 @@ export const AuthLanding: React.FC<AuthLandingProps> = ({ onAuthSuccess }) => {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 text-center text-xs text-stone-500 border-t border-stone-200">
+      <footer className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 text-center text-xs text-[#7B2CBF] border-t border-[#C8A2E8]/40">
         <p>LumaCycle · Private, encrypted reproductive health companion · Stored securely on your account</p>
       </footer>
     </div>

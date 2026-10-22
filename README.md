@@ -1,105 +1,75 @@
-# LumaCycle — Period & Menstrual Health Tracker
+# LumaCycle — Menstrual Cycle & Reproductive Health Companion
 
-**LumaCycle** is a privacy-first, clinical-grade menstrual cycle, ovulation, and reproductive health companion. Built with an empathetic design language, it helps users track their menstrual flow, predict fertile windows, understand the four biological phases of the menstrual cycle, and log symptoms with complete confidentiality and multi-device cloud synchronization.
+**LumaCycle** is a privacy-first, personalized menstrual health companion with intelligent period predictions, recurring symptom intelligence, multi-device cloud synchronization, and a modern purple-and-pink aesthetic.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Modern Purple & Pink Design Palette
 
-### 1. Secure Authentication & User Isolation
-- **Google Sign-In & Email Authentication**: Instant, secure login with Google OAuth via Firebase Authentication, with email and password fallback.
-- **Pre-Auth Protection**: Visitors cannot view or record personal health data until authenticated.
-- **Strict Data Isolation**: Each user’s cycles, daily symptoms, and vitals are stored under their own verified user ID (`/users/{uid}/...`). Firebase security rules mathematically enforce that User A can never access or query User B’s records.
-- **Account Clearing**: Logging out or switching accounts immediately flushes sensitive data from active browser memory.
+LumaCycle features an empathetic, high-contrast, and calming visual identity:
+- **Deep Purple** (`#542080`): Primary actions, brand mark, and high-emphasis elements
+- **Royal Purple** (`#7B2CBF`): Navigation active indicators, cycle arcs, and primary buttons
+- **Lavender** (`#C8A2E8`): Borders, subtle dividers, and follicular phase arcs
+- **Soft Lavender Background** (`#F6F0FC`): Easy-on-the-eyes app backdrop
+- **Bright Pink** (`#EC4899`): Menstrual phase indicators, bleeding status, and urgent badges
+- **Soft Blush Pink** (`#FCE7F3`): Card backgrounds, pill tags, and subtle highlights
+- **Dark Plum Text** (`#321442`): High-legibility typography matching WCAG AAA contrast
+- **White** (`#FFFFFF`): Clean container surfaces and elevated modals
 
-### 2. Interactive Biological Cycle Dial & Period Start Recording
-- **Explicit Period Start Logging**: Dedicated "Record When Period Started" modal with quick options (*Today*, *Yesterday*, *2 days ago*, or custom calendar date), initial flow intensity, bleed duration stepper, and early symptom tags.
-- **Lively Ambient Visuals**: Dynamic phase-responsive radial backdrop glowing softly in Menstrual Rose, Follicular Violet, Ovulatory Gold, or Luteal Teal.
-- **Real-Time Cycle Calibration**: Recording a period start date automatically closes prior ongoing cycles, sets Day 1 of the new cycle, and recalibrates upcoming ovulation and fertile window forecasts.
-- **Lively Biological Energy Vibe & Hormone Horoscope**: Daily meters tracking *Physical Stamina*, *Creative Focus*, *Social & Drive*, and *Restorative Need* with motivational body wisdom quotes.
-- **Quick Tap Mood Reaction**: One-tap mood chips (🌿 Calm, ☀️ Happy, ⚡ Energetic, 💧 Sensitive, 🔥 Irritable, 🛌 Tired) directly on the main dashboard.
+---
 
-### 3. Interactive Monthly Calendar
-- Full month grid with smooth month/year navigation and quick "Jump to Today".
-- Color-coded badges for active bleed days, predicted periods, fertile windows, peak ovulation day, and PMS alerts.
-- Day inspection drawer: Click any calendar date to inspect or edit logged symptoms, moods, and vitals.
+## 🔬 Core Capabilities
 
-### 4. Comprehensive Daily Health Logger
-- **Flow Intensity**: None, Spotting, Light, Medium, Heavy.
-- **Physical Symptoms**: Cramps, Tender Breasts, Headache, Bloating, Fatigue, Backache, Acne, Food Cravings, Nausea, Insomnia.
-- **Mood & Emotions**: Calm, Happy, Energetic, Sensitive, Irritable, Anxious, Sad, Exhausted.
-- **Cervical Fluid / Mucus**: Dry, Sticky, Creamy, Egg-White (peak fertile), Watery.
-- **Vitals & Habits**: Basal Body Temperature (°C or °F), Body Weight (kg or lbs), Sleep hours stepper, Water intake tracker.
-- **Intimacy & Contraception**: Daily contraceptive pill check-off and intimacy protection tracker.
-- **Journal Notes**: Freeform notes for thoughts, food reactions, and emotional reflections.
+### 1. Intelligent Period Prediction with Outlier Resistance
+- **Outlier Filtering**: Calculates cycle lengths between consecutive period start dates. Excludes atypical cycles (<18 days or >60 days) to prevent temporary disruptions from skewing future forecasts.
+- **Dynamic Uncertainty Ranges**: Provides a clear prediction window (e.g., Nov 18 – Nov 22) derived from standard deviation of recent cycles (clamped between ±1 and ±4 days).
+- **Adaptive Confidence Levels**:
+  - *Provisional*: 0–1 recorded cycles (uses user preferences baseline)
+  - *Moderate*: 2–3 recorded cycles (averages available cycles with max variance)
+  - *High Confidence*: 4+ recorded cycles (weighted moving average of the last 4 cycles)
+- **Early & Late Period Detection**:
+  - Detects if a recorded period started *earlier than expected*, *within expected range*, or *later than expected*.
+  - When the expected date passes without a logged period, displays a gentle, reassuring notification distinguishing normal variation from a missed period.
 
-### 5. Hormone Guide & Cycle Syncing
-- Comprehensive educational guide detailing hormonal fluctuations (Estrogen, Progesterone, LH, FSH).
-- Phase-synced nutrition recommendations and seed cycling suggestions.
-- Workout and movement recommendations tailored to hormonal energy rhythms.
-- Self-care rituals for menstrual restoration and luteal comfort.
+### 2. Menstrual Health Intelligence & Recurring Symptoms
+- **Strictly Data-Driven**: Analyzes stored cycle records and daily logs without fabricating symptoms or patterns.
+- **Phase-Specific Pattern Correlation**: Identifies whether symptoms consistently occur during the **Pre-Menstrual Window** (1–7 days before flow) or **Menstrual Phase** (active bleeding days).
+- **Pain Severity Breakdown**: Tracks specific severity levels (mild, moderate, severe) for cramps, headaches, lower back pain, and pelvic pain.
+- **Medications & Pain Relief**: Records medications taken (e.g. Ibuprofen, Paracetamol) and notes changes across cycles.
+- **Clinical Safety Boundaries**: Factual, non-alarmist health summaries that assist in clinical appointments while explicitly noting that statistical patterns do not diagnose medical conditions like endometriosis, PCOS, or fibroids. Provides prompt urgent-care warnings for severe acute pain or hemorrhaging.
 
-### 6. Historical Period Recording & Dynamic Cycle Calculations
-- **Automatic Real-Time Date & Time Tracking**: Automatically detects the current date in the user's local timezone (e.g. Wednesday, 21st October 2026) with midnight auto-rollover and live clock.
-- **Past Month & Year Historical Period Logging**: Record previous menstrual periods from any month or year (e.g., September 2026, August 2026, July 2026).
-- **Exact Start Date, End Date & Duration Synchronization**: Setting start/end dates automatically calculates bleed duration, and adjusting duration automatically updates the end date.
-- **Accurate Cycle Length Calculation**: Calculates cycle lengths as the exact number of days between the first day of one period and the first day of the next period.
-- **Empirical Cycle Average vs Custom Estimate**: Dynamically computes average cycle length from recorded consecutive cycles when data is available, with a clearly labeled estimation source and fallback to customizable settings.
-- **Edit & Delete Protection**: Edit existing cycle records or delete with a safety confirmation dialog; all predictions, cycle lengths, and fertile windows recalibrate in real time.
+### 3. Historical Period Recording Across Months & Years
+- **Past Months & Years**: Record previous periods from September 2026, August 2026, or earlier.
+- **Synchronized Duration & Dates**: Selecting start and end dates automatically calculates period duration; adjusting duration updates the end date.
+- **Cycle Recalculation**: Automatically measures cycle length as the exact number of days from Day 1 of one period to Day 1 of the subsequent period.
+- **Edit & Delete Protection**: Edit previous entries or delete incorrect cycles with safety confirmation modals.
 
-### 7. My Profile & Data Sovereignty
-- **Verified Identity**: Displays verified Google account name, email address, profile picture, account creation date, and last active session.
-- **Clinical Preferences**: Adjust average cycle length (20–50 days), period bleed duration (2–12 days), luteal phase span, temperature units, and weight units.
-- **Discreet / Commute Mode**: Neutralizes sensitive terms for privacy when in public or commuting.
-- **Data Erasure**: One-click options to wipe all personal tracking records or permanently delete the entire account.
-- **JSON Export / Import**: Download or restore an encrypted local backup file.
+### 4. Interactive Personalized Cycle Calendar
+- Month-by-month navigation without modifying the local "Today" date.
+- Clear visual distinction between **Confirmed Logged Bleed Days** (solid pink) and **Predicted Period Window** (dashed lavender border with light pink fill).
+- Direct day inspection to log symptoms, moods, medications, and vitals for any selected date.
+
+### 5. Verified Google Authentication & Data Sovereignty
+- **Google Sign-In**: Powered by Firebase Authentication with automatic profile retrieval.
+- **Strict User Isolation**: All health logs are scoped under `/users/{uid}/...` with Firestore security rules preventing cross-user access.
+- **Data Sovereignty & Permanent Erasure**:
+  - Clear all menstrual and health records with one click.
+  - Permanently delete the entire Google-linked account and all associated cloud data.
+  - Download or restore encrypted JSON backups at any time.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Frontend Framework**: React 19 with TypeScript
-- **Bundler & Tooling**: Vite 8
-- **Styling**: Tailwind CSS v4
+- **Frontend**: React 19, TypeScript
+- **Tooling**: Vite 8, Tailwind CSS v4
 - **Icons**: Lucide React
-- **Authentication**: Firebase Authentication (Google OAuth + Email/Password)
-- **Database**: Google Cloud Firestore (`ai-studio-lumacycleperiodm-3c57a66a-901e-4898-8512-741e62712e47`)
+- **Animations**: Motion (Framer Motion)
+- **Database & Auth**: Google Cloud Firestore & Firebase Authentication
 - **Security**: Hardened Attribute-Based Access Control (ABAC) in `firestore.rules`
-
----
-
-## 🔒 Privacy & Security Standards
-
-- **Zero Third-Party Profiling**: No advertising pixels, tracking cookies, or health broker integrations.
-- **Privacy-by-Design**: Engineered in alignment with modern data protection principles, including Kenya's Data Protection Act and international privacy frameworks.
-- **Encrypted in Transit & at Rest**: All network communications use TLS/HTTPS, and database records are securely isolated.
 
 ---
 
 ## ⚖️ Clinical Disclaimer
 
-> **Important**: Cycle predictions, ovulation windows, and fertility dates provided by LumaCycle are statistical estimates based on biological rhythm algorithms and historical patterns. They should not be used as a method of contraception, family planning guarantees, or medical diagnostic advice. Always consult a qualified healthcare provider for reproductive health decisions.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18 or higher recommended)
-- npm or yarn
-
-### Installation
-
-1. Clone or open the project directory.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. Build for production:
-   ```bash
-   npm run build
-   ```
+> **Important**: Cycle predictions, ovulation windows, and symptom insights generated by LumaCycle are statistical estimates based on user-entered historical data. They do not constitute medical diagnosis, clinical advice, or guaranteed contraception. For reproductive health questions or severe symptoms, always consult a licensed gynecologist or healthcare practitioner.

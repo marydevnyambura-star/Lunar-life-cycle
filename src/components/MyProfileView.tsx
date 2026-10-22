@@ -12,7 +12,8 @@ import {
   Clock,
   Check,
   AlertTriangle,
-  Heart
+  Heart,
+  Sparkles
 } from 'lucide-react';
 import { deleteAllUserDataFromDb, saveUserSettingsToDb } from '../services/userDataService';
 
@@ -112,11 +113,14 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-display text-stone-900 tracking-tight">
-          My Personal Profile
+        <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#321442] tracking-tight flex items-center gap-2">
+          <span>My Personal Profile</span>
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#FCE7F3] text-[#EC4899] border border-[#EC4899]/20">
+            LumaCycle
+          </span>
         </h1>
-        <p className="text-xs sm:text-sm text-stone-500 mt-1">
-          Manage your verified identity, cycle parameters, and privacy sovereignty.
+        <p className="text-xs sm:text-sm text-[#7B2CBF]/80 mt-1">
+          Manage your verified Google identity, cycle baseline parameters, and health data sovereignty.
         </p>
       </div>
 
@@ -128,8 +132,8 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
       )}
 
       {/* Card 1: Verified Google Identity (Immutable) */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100">
+      <div className="bg-white rounded-3xl border border-[#C8A2E8]/40 p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#F6F0FC]">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             {user.photoURL ? (
@@ -137,29 +141,29 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
                 referrerPolicy="no-referrer"
-                className="w-16 h-16 rounded-full object-cover border-2 border-stone-100 shadow-sm"
+                className="w-16 h-16 rounded-full object-cover border-2 border-[#C8A2E8]/60 shadow-sm"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-700 font-display font-bold text-xl flex items-center justify-center border-2 border-rose-200">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#7B2CBF] to-[#EC4899] text-white font-display font-bold text-2xl flex items-center justify-center border-2 border-white shadow-sm">
                 {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
               </div>
             )}
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold font-display text-stone-900">
+                <h2 className="text-lg sm:text-xl font-bold font-display text-[#321442]">
                   {user.displayName || 'LumaCycle Member'}
                 </h2>
                 <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Verified Identity</span>
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  <span>Verified Google Account</span>
                 </span>
               </div>
-              <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-stone-400" />
+              <p className="text-xs text-[#7B2CBF]/70 mt-0.5 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#C8A2E8]" />
                 <span>{user.email || 'No email attached'}</span>
               </p>
             </div>
@@ -167,58 +171,58 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
 
           <button
             onClick={onSignOut}
-            className="px-4 py-2 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-900 hover:bg-stone-50 text-xs font-medium flex items-center gap-2 self-start sm:self-auto transition-colors"
+            className="px-4 py-2 rounded-xl border border-[#C8A2E8]/50 text-[#542080] hover:text-[#321442] hover:bg-[#F6F0FC] text-xs font-semibold flex items-center gap-2 self-start sm:self-auto transition-colors cursor-pointer"
           >
-            <LogOut className="w-4 h-4 text-stone-500" />
+            <LogOut className="w-4 h-4 text-[#7B2CBF]" />
             <span>Sign Out</span>
           </button>
         </div>
 
         {/* Identity Metadata Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80">
-            <span className="text-[11px] text-stone-600 font-medium block">Unique User ID</span>
-            <span className="font-mono text-stone-800 text-[11px] truncate block mt-1" title={user.uid}>
+          <div className="p-3.5 rounded-2xl bg-[#F6F0FC] border border-[#C8A2E8]/30">
+            <span className="text-[11px] text-[#7B2CBF] font-semibold block">Unique User ID</span>
+            <span className="font-mono text-[#321442] text-[11px] truncate block mt-1" title={user.uid}>
               {user.uid}
             </span>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80">
-            <span className="text-[11px] text-stone-600 font-medium block">Account Created</span>
-            <span className="text-stone-900 font-medium block mt-1">
+          <div className="p-3.5 rounded-2xl bg-[#F6F0FC] border border-[#C8A2E8]/30">
+            <span className="text-[11px] text-[#7B2CBF] font-semibold block">Account Created</span>
+            <span className="text-[#321442] font-semibold block mt-1">
               {createdAtFormatted}
             </span>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80">
-            <span className="text-[11px] text-stone-600 font-medium block">Last Active Session</span>
-            <span className="text-stone-900 font-medium block mt-1">
+          <div className="p-3.5 rounded-2xl bg-[#F6F0FC] border border-[#C8A2E8]/30">
+            <span className="text-[11px] text-[#7B2CBF] font-semibold block">Last Active Session</span>
+            <span className="text-[#321442] font-semibold block mt-1">
               {lastSignInFormatted}
             </span>
           </div>
         </div>
 
-        <p className="text-[11px] text-stone-400 italic">
-          *Note: To protect authentication integrity, your Google name and email are verified by the identity provider and cannot be spoofed inside the application.
+        <p className="text-[11px] text-[#7B2CBF]/60 italic">
+          *Note: To protect authentication integrity, your Google name and email are verified by the identity provider and cannot be altered inside the application.
         </p>
       </div>
 
       {/* Card 2: Menstrual Tracking Preferences (Editable) */}
-      <form onSubmit={handleSavePreferences} className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+      <form onSubmit={handleSavePreferences} className="bg-white rounded-3xl border border-[#C8A2E8]/40 p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-[#F6F0FC]">
           <div>
-            <h2 className="text-lg font-bold font-display text-stone-900">
+            <h2 className="text-lg font-bold font-display text-[#321442]">
               Tracking & Algorithm Preferences
             </h2>
-            <p className="text-xs text-stone-500 mt-0.5">
-              Customize cycle calculations and unit settings saved to your private database profile.
+            <p className="text-xs text-[#7B2CBF]/70 mt-0.5">
+              Customize cycle parameters and unit settings saved to your private database profile.
             </p>
           </div>
 
           <button
             type="submit"
             disabled={savingSettings}
-            className="px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-medium hover:bg-stone-800 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+            className="px-4 py-2 bg-gradient-to-r from-[#7B2CBF] to-[#542080] hover:from-[#542080] hover:to-[#321442] text-white rounded-xl text-xs font-semibold active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm shadow-purple-200 disabled:opacity-50 cursor-pointer"
           >
             {savingSettings ? (
               <span>Saving...</span>
@@ -236,8 +240,8 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {/* Cycle Length */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 block mb-1.5">
-              Typical Cycle Length
+            <label className="text-xs font-semibold text-[#321442] block mb-1.5">
+              Baseline Cycle Length
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -248,16 +252,16 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 onChange={e =>
                   setLocalSettings({ ...localSettings, avgCycleLength: parseInt(e.target.value) || 28 })
                 }
-                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full px-3 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/50 rounded-xl font-mono text-[#321442] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
               />
-              <span className="text-xs text-stone-500">days</span>
+              <span className="text-xs text-[#7B2CBF]/80">days</span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-1">Normal: 24–35 days</p>
+            <p className="text-[11px] text-[#7B2CBF]/60 mt-1">Normal: 24–35 days</p>
           </div>
 
           {/* Period Duration */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 block mb-1.5">
+            <label className="text-xs font-semibold text-[#321442] block mb-1.5">
               Typical Period Flow Duration
             </label>
             <div className="flex items-center gap-2">
@@ -269,16 +273,16 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 onChange={e =>
                   setLocalSettings({ ...localSettings, avgPeriodDuration: parseInt(e.target.value) || 5 })
                 }
-                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full px-3 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/50 rounded-xl font-mono text-[#321442] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
               />
-              <span className="text-xs text-stone-500">days</span>
+              <span className="text-xs text-[#7B2CBF]/80">days</span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-1">Normal: 3–7 days</p>
+            <p className="text-[11px] text-[#7B2CBF]/60 mt-1">Normal: 3–7 days</p>
           </div>
 
           {/* Luteal Phase */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 block mb-1.5">
+            <label className="text-xs font-semibold text-[#321442] block mb-1.5">
               Luteal Phase Span
             </label>
             <div className="flex items-center gap-2">
@@ -290,28 +294,28 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 onChange={e =>
                   setLocalSettings({ ...localSettings, lutealLength: parseInt(e.target.value) || 14 })
                 }
-                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full px-3 py-2 text-sm bg-[#F6F0FC] border border-[#C8A2E8]/50 rounded-xl font-mono text-[#321442] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
               />
-              <span className="text-xs text-stone-500">days</span>
+              <span className="text-xs text-[#7B2CBF]/80">days</span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-1">Typically 12–14 days</p>
+            <p className="text-[11px] text-[#7B2CBF]/60 mt-1">Typically 12–14 days</p>
           </div>
         </div>
 
         {/* Units & Preferences */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-stone-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#F6F0FC]">
           <div>
-            <label className="text-xs font-semibold text-stone-700 block mb-1.5">
+            <label className="text-xs font-semibold text-[#321442] block mb-1.5">
               Basal Temperature Unit
             </label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setLocalSettings({ ...localSettings, tempUnit: 'C' })}
-                className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   localSettings.tempUnit === 'C'
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    ? 'bg-[#542080] text-white border-[#542080] shadow-xs'
+                    : 'bg-[#F6F0FC] text-[#321442] border-[#C8A2E8]/50 hover:bg-[#FCE7F3]'
                 }`}
               >
                 Celsius (°C)
@@ -319,10 +323,10 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
               <button
                 type="button"
                 onClick={() => setLocalSettings({ ...localSettings, tempUnit: 'F' })}
-                className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   localSettings.tempUnit === 'F'
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    ? 'bg-[#542080] text-white border-[#542080] shadow-xs'
+                    : 'bg-[#F6F0FC] text-[#321442] border-[#C8A2E8]/50 hover:bg-[#FCE7F3]'
                 }`}
               >
                 Fahrenheit (°F)
@@ -331,17 +335,17 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-stone-700 block mb-1.5">
+            <label className="text-xs font-semibold text-[#321442] block mb-1.5">
               Weight Unit
             </label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setLocalSettings({ ...localSettings, weightUnit: 'kg' })}
-                className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   localSettings.weightUnit === 'kg'
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    ? 'bg-[#542080] text-white border-[#542080] shadow-xs'
+                    : 'bg-[#F6F0FC] text-[#321442] border-[#C8A2E8]/50 hover:bg-[#FCE7F3]'
                 }`}
               >
                 Kilograms (kg)
@@ -349,10 +353,10 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
               <button
                 type="button"
                 onClick={() => setLocalSettings({ ...localSettings, weightUnit: 'lbs' })}
-                className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   localSettings.weightUnit === 'lbs'
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    ? 'bg-[#542080] text-white border-[#542080] shadow-xs'
+                    : 'bg-[#F6F0FC] text-[#321442] border-[#C8A2E8]/50 hover:bg-[#FCE7F3]'
                 }`}
               >
                 Pounds (lbs)
@@ -362,12 +366,12 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
         </div>
 
         {/* Birth control toggle in profile */}
-        <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-[#F6F0FC] border border-[#C8A2E8]/40 flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-stone-900 block">
+            <span className="text-xs font-semibold text-[#321442] block">
               Daily Contraceptive Pill Reminder
             </span>
-            <span className="text-[11px] text-stone-500">
+            <span className="text-[11px] text-[#7B2CBF]/70">
               Show daily tracking checkmark at {localSettings.pillReminderTime}
             </span>
           </div>
@@ -377,7 +381,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
             onChange={e =>
               setLocalSettings({ ...localSettings, pillReminderEnabled: e.target.checked })
             }
-            className="w-5 h-5 text-emerald-600 rounded-sm cursor-pointer"
+            className="w-5 h-5 text-[#EC4899] accent-[#EC4899] rounded-sm cursor-pointer"
           />
         </div>
       </form>
@@ -389,8 +393,8 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
             <Trash2 className="w-5 h-5 text-rose-600" />
             <span>Data Sovereignty & Permanent Erasure</span>
           </h2>
-          <p className="text-xs text-stone-600 mt-1">
-            In compliance with privacy-by-design standards (including Kenya's Data Protection Act), you have absolute sovereignty over your intimate health history.
+          <p className="text-xs text-[#7B2CBF]/80 mt-1">
+            You hold absolute sovereignty over your intimate cycle records. You can wipe all menstrual and symptom records or delete your entire Google-linked account permanently.
           </p>
         </div>
 
@@ -398,7 +402,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
           <button
             type="button"
             onClick={() => setShowDeleteDataModal(true)}
-            className="py-2.5 px-4 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-medium transition-colors"
+            className="py-2.5 px-4 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-colors cursor-pointer"
           >
             Clear All Menstrual & Health Records
           </button>
@@ -406,7 +410,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
           <button
             type="button"
             onClick={() => setShowDeleteAccountModal(true)}
-            className="py-2.5 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 text-xs font-medium transition-colors shadow-xs"
+            className="py-2.5 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 text-xs font-semibold transition-colors shadow-xs cursor-pointer"
           >
             Permanently Delete My Entire Account
           </button>
@@ -415,29 +419,29 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
 
       {/* Modal: Clear Data Only Confirmation */}
       {showDeleteDataModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl border border-stone-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#321442]/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl border border-[#C8A2E8]/40">
             <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-stone-900 font-display">
+            <h3 className="text-base font-bold text-[#321442] font-display">
               Clear All Health Data?
             </h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
+            <p className="text-xs text-[#7B2CBF]/80 leading-relaxed">
               This will permanently delete all your recorded cycles, daily logs, flow entries, symptoms, and notes from your database. Your login account will remain active.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowDeleteDataModal(false)}
                 disabled={actionLoading}
-                className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                className="px-4 py-2 text-xs text-[#542080] hover:text-[#321442] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteDataOnly}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-medium hover:bg-rose-700"
+                className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700 cursor-pointer"
               >
                 {actionLoading ? 'Deleting...' : 'Yes, Delete All Data'}
               </button>
@@ -448,29 +452,29 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
 
       {/* Modal: Delete Entire Account Confirmation */}
       {showDeleteAccountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl border border-stone-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#321442]/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl border border-[#C8A2E8]/40">
             <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-stone-900 font-display">
+            <h3 className="text-base font-bold text-[#321442] font-display">
               Permanently Delete Account?
             </h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
+            <p className="text-xs text-[#7B2CBF]/80 leading-relaxed">
               This will permanently erase your authenticated Google account connection and wipe all cycles, calendar records, and health notes from our database. This action is irreversible.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowDeleteAccountModal(false)}
                 disabled={actionLoading}
-                className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                className="px-4 py-2 text-xs text-[#542080] hover:text-[#321442] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteEntireAccount}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-700 text-white rounded-xl text-xs font-medium hover:bg-rose-800"
+                className="px-4 py-2 bg-rose-700 text-white rounded-xl text-xs font-semibold hover:bg-rose-800 cursor-pointer"
               >
                 {actionLoading ? 'Erasing Account...' : 'Permanently Delete Account'}
               </button>

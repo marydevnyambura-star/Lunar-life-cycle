@@ -151,7 +151,13 @@ export async function saveUserCycleToDb(uid: string, cycle: CycleRecord): Promis
       cycleLength: cycle.cycleLength || null,
       periodDuration: cycle.periodDuration || 5,
       isOngoing: !!cycle.isOngoing,
-      createdAt: new Date().toISOString()
+      flow: cycle.flow || 'medium',
+      symptoms: cycle.symptoms || [],
+      painSeverity: cycle.painSeverity || null,
+      medications: cycle.medications || [],
+      notes: cycle.notes || '',
+      predictedStartDate: cycle.predictedStartDate || null,
+      updatedAt: new Date().toISOString()
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `users/${uid}/cycles/${cycle.id}`);
@@ -202,6 +208,9 @@ export async function saveUserDailyLogToDb(uid: string, log: DailyLog): Promise<
       flow: log.flow || 'none',
       symptoms: log.symptoms || [],
       moods: log.moods || [],
+      overallPain: log.overallPain || null,
+      painLevels: log.painLevels || null,
+      medication: log.medication || null,
       cervicalMucus: log.cervicalMucus || null,
       temperature: log.temperature ?? null,
       weight: log.weight ?? null,
@@ -210,6 +219,7 @@ export async function saveUserDailyLogToDb(uid: string, log: DailyLog): Promise<
       pillTaken: !!log.pillTaken,
       sexualActivity: log.sexualActivity || { active: false },
       notes: log.notes || '',
+      unusualChanges: log.unusualChanges || '',
       updatedAt: new Date().toISOString()
     });
   } catch (error) {

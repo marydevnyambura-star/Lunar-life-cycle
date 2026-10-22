@@ -11,10 +11,20 @@ import {
   Moon,
   Zap,
   Edit3,
-  Info
+  Info,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import { CycleRecord, DailyLog, UserSettings, DayPrediction } from '../types';
-import { formatDateStr, parseDateStr, getDayPrediction, diffDays, formatDisplayDate } from '../utils/cycleCalculations';
+import {
+  formatDateStr,
+  parseDateStr,
+  getDayPrediction,
+  diffDays,
+  formatDisplayDate,
+  formatShortDate,
+  calculateIntelligentPrediction
+} from '../utils/cycleCalculations';
 
 interface CalendarSectionProps {
   currentDateStr: string;
@@ -42,13 +52,11 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
+  const prediction = calculateIntelligentPrediction(currentDateStr, cycles, settings);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const yearOptions = [
-    year - 2, year - 1, year, year + 1, year + 2
   ];
 
   const handlePrevMonth = () => {
@@ -121,15 +129,15 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner / Controls */}
-      <div className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
+      <div className="bg-white rounded-3xl border border-[#C8A2E8]/40 p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-purple-50">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Quick Month & Year Selectors */}
             <div className="flex items-center gap-2">
               <select
                 value={month}
                 onChange={e => handleMonthSelect(parseInt(e.target.value))}
-                className="text-lg sm:text-2xl font-bold text-stone-900 font-display bg-transparent border-b border-dashed border-stone-300 hover:border-stone-900 focus:outline-none cursor-pointer py-0.5"
+                className="text-lg sm:text-2xl font-bold text-[#321442] font-display bg-transparent border-b-2 border-dashed border-[#C8A2E8] hover:border-[#7B2CBF] focus:outline-none cursor-pointer py-0.5"
               >
                 {monthNames.map((name, idx) => (
                   <option key={name} value={idx}>
@@ -141,7 +149,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
               <select
                 value={year}
                 onChange={e => handleYearSelect(parseInt(e.target.value))}
-                className="text-lg sm:text-2xl font-bold text-stone-900 font-display bg-transparent border-b border-dashed border-stone-300 hover:border-stone-900 focus:outline-none cursor-pointer py-0.5"
+                className="text-lg sm:text-2xl font-bold text-[#321442] font-display bg-transparent border-b-2 border-dashed border-[#C8A2E8] hover:border-[#7B2CBF] focus:outline-none cursor-pointer py-0.5"
               >
                 {[year - 2, year - 1, year, year + 1, year + 2].map(y => (
                   <option key={y} value={y}>
@@ -153,17 +161,16 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
 
             <button
               onClick={handleJumpToToday}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer"
+              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#F6F0FC] text-[#542080] hover:bg-purple-100 border border-[#C8A2E8]/40 transition-colors cursor-pointer"
             >
               Today
             </button>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
             <button
               onClick={() => onOpenRecordPeriodForDate(selectedDateStr)}
-              className="px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Record a period in this month or on selected date"
+              className="px-3.5 py-2 text-xs font-bold text-white bg-[#EC4899] hover:bg-pink-600 rounded-xl transition-all flex items-center gap-1.5 shadow-sm shadow-pink-200 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Record Past Period</span>
@@ -173,14 +180,14 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
               <button
                 onClick={handlePrevMonth}
                 aria-label="Previous month"
-                className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#C8A2E8]/40 text-[#542080] hover:bg-[#F6F0FC] transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={handleNextMonth}
                 aria-label="Next month"
-                className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#C8A2E8]/40 text-[#542080] hover:bg-[#F6F0FC] transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -188,10 +195,25 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
           </div>
         </div>
 
+        {/* Prediction Status Pill Banner */}
+        <div className="mt-3 p-3 rounded-2xl bg-[#F6F0FC] border border-[#C8A2E8]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${prediction.statusBadgeColor}`}>
+              {prediction.statusLabel}
+            </span>
+            <span className="text-[#321442] font-medium">
+              Next period estimated: <strong>{formatShortDate(parseDateStr(prediction.predictedStartDate))}</strong> (Window: {formatShortDate(parseDateStr(prediction.predictedRangeStart))} – {formatShortDate(parseDateStr(prediction.predictedRangeEnd))})
+            </span>
+          </div>
+          <span className="text-[11px] text-stone-500">
+            {prediction.confidenceLabel}
+          </span>
+        </div>
+
         {/* Calendar Grid */}
         <div className="mt-4">
           {/* Day of Week Headers */}
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-stone-500 pb-2">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-[#7B2CBF] pb-2">
             <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
@@ -204,64 +226,66 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
           {/* Grid Cells */}
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {calendarCells.map(cell => {
-              const prediction = getDayPrediction(cell.dateStr, cycleStartDateStr, settings, logs, cycles);
+              const pred = getDayPrediction(cell.dateStr, cycleStartDateStr, settings, logs, cycles);
               const isToday = cell.dateStr === currentDateStr;
               const isSelected = cell.dateStr === selectedDateStr;
 
               // Visual styling logic
-              let dayBg = 'bg-stone-50/50 hover:bg-stone-100/70 text-stone-800';
+              let dayBg = 'bg-[#F6F0FC]/60 hover:bg-purple-100/70 text-[#321442]';
 
-              if (prediction.isPeriod) {
-                dayBg = 'bg-rose-100/80 border border-rose-300 text-rose-900 font-semibold';
-              } else if (prediction.isPredictedPeriod) {
-                dayBg = 'bg-rose-50/60 border border-dashed border-rose-300 text-rose-700';
-              } else if (prediction.isOvulation) {
-                dayBg = 'bg-amber-100/80 border border-amber-300 text-amber-950 font-semibold';
-              } else if (prediction.isFertile) {
-                dayBg = 'bg-amber-50/60 border border-amber-200 text-amber-900';
-              } else if (prediction.isPms) {
-                dayBg = 'bg-violet-50/40 border border-violet-200 text-violet-900';
+              if (pred.isPeriod) {
+                dayBg = 'bg-[#FCE7F3] border border-pink-300 text-pink-900 font-bold';
+              } else if (pred.isPredictedWindow) {
+                dayBg = 'bg-purple-50/70 border-2 border-dashed border-[#C8A2E8] text-[#542080]';
+              } else if (pred.isPredictedPeriod) {
+                dayBg = 'bg-pink-50/60 border border-dashed border-pink-300 text-pink-700';
+              } else if (pred.isOvulation) {
+                dayBg = 'bg-amber-100/80 border border-amber-300 text-amber-950 font-bold';
+              } else if (pred.isFertile) {
+                dayBg = 'bg-amber-50/70 border border-amber-200 text-amber-900';
+              } else if (pred.isPms) {
+                dayBg = 'bg-purple-100/50 border border-purple-200 text-[#542080]';
               }
 
               if (!cell.isCurrentMonth) {
-                dayBg += ' opacity-40';
+                dayBg += ' opacity-35';
               }
 
               return (
                 <button
                   key={cell.dateStr}
                   onClick={() => setSelectedDateStr(cell.dateStr)}
-                  className={`min-h-[58px] sm:min-h-[72px] p-1.5 sm:p-2 rounded-xl flex flex-col justify-between items-center transition-all relative cursor-pointer ${dayBg} ${
-                    isSelected ? 'ring-2 ring-stone-900 shadow-xs' : ''
+                  className={`min-h-[58px] sm:min-h-[72px] p-1.5 sm:p-2 rounded-2xl flex flex-col justify-between items-center transition-all relative cursor-pointer ${dayBg} ${
+                    isSelected ? 'ring-2 ring-[#542080] shadow-sm' : ''
                   }`}
                 >
                   <div className="w-full flex items-center justify-between text-xs">
                     <span
                       className={`inline-block font-mono text-[11px] sm:text-xs ${
                         isToday
-                          ? 'w-5 h-5 rounded-full bg-stone-900 text-white flex items-center justify-center font-bold'
+                          ? 'w-5 h-5 rounded-full bg-[#542080] text-white flex items-center justify-center font-bold shadow-xs'
                           : ''
                       }`}
                     >
                       {cell.dayNum}
                     </span>
 
-                    {prediction.isOvulation && (
+                    {pred.isOvulation && (
                       <span className="text-[10px] text-amber-600" title="Estimated Ovulation">
                         ✨
                       </span>
                     )}
-                    {prediction.isPeriod && (
-                      <Droplets className="w-3 h-3 text-rose-600 fill-rose-600" />
+                    {pred.isPeriod && (
+                      <Droplets className="w-3 h-3 text-[#EC4899] fill-[#EC4899]" />
                     )}
                   </div>
 
                   {/* Micro indicator badges */}
                   <div className="w-full flex items-center justify-center gap-1 mt-auto">
-                    {prediction.hasLog && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-stone-700" title="Daily log entry"></span>
+                    {pred.hasLog && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7B2CBF]" title="Logged symptoms"></span>
                     )}
-                    {prediction.isFertile && !prediction.isOvulation && (
+                    {pred.isFertile && !pred.isOvulation && (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Estimated fertile day"></span>
                     )}
                   </div>
@@ -272,14 +296,14 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         </div>
 
         {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600">
+        <div className="mt-6 pt-4 border-t border-purple-50 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-rose-400"></span>
-            <span>Recorded Period Bleed</span>
+            <span className="w-3 h-3 rounded-full bg-[#EC4899]"></span>
+            <span>Recorded Period Flow</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-md border border-dashed border-rose-400 bg-rose-50"></span>
-            <span>Predicted Period (Estimate)</span>
+            <span className="w-3 h-3 rounded-md border-2 border-dashed border-[#C8A2E8] bg-purple-50"></span>
+            <span>Predicted Range (Estimate)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-amber-400"></span>
@@ -290,31 +314,31 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             <span>Estimated Ovulation Day</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-stone-700"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7B2CBF]"></span>
             <span>Symptoms Logged</span>
           </div>
         </div>
       </div>
 
       {/* Selected Day Detail Card */}
-      <div className="bg-white rounded-2xl border border-stone-200 p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-100">
+      <div className="bg-white rounded-3xl border border-[#C8A2E8]/40 p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-50">
           <div>
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-stone-500" />
-              <h3 className="text-base font-bold text-stone-900 font-display">
+              <CalendarIcon className="w-4 h-4 text-[#7B2CBF]" />
+              <h3 className="text-base font-bold text-[#321442] font-display">
                 {formatDisplayDate(parseDateStr(selectedDateStr))}
               </h3>
               {selectedDateStr === currentDateStr && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-900 text-white">
-                  Today
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#542080] text-white shadow-2xs">
+                  Today (Actual Date)
                 </span>
               )}
             </div>
             <p className="text-xs text-stone-600 mt-1">
               Cycle Day {selectedPrediction.cycleDay || 1} · {selectedPrediction.phase.charAt(0).toUpperCase() + selectedPrediction.phase.slice(1)} Phase
-              {selectedPrediction.isPredictedPeriod && ' · (Predicted Period Estimate)'}
               {selectedPrediction.isPeriod && ' · (Recorded Period Bleed)'}
+              {selectedPrediction.isPredictedWindow && ' · (Inside Predicted Window)'}
             </p>
           </div>
 
@@ -322,15 +346,15 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             {cycleOnSelectedDate ? (
               <button
                 onClick={() => onOpenRecordPeriodForDate(selectedDateStr, cycleOnSelectedDate)}
-                className="px-3.5 py-2 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 text-xs font-bold text-[#542080] bg-purple-50 hover:bg-purple-100 rounded-xl transition-all flex items-center gap-1.5 border border-[#C8A2E8]/40 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-stone-600" />
+                <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Period Record</span>
               </button>
             ) : (
               <button
                 onClick={() => onOpenRecordPeriodForDate(selectedDateStr)}
-                className="px-3.5 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm shadow-rose-200 cursor-pointer"
+                className="px-3.5 py-2 text-xs font-bold text-white bg-[#EC4899] rounded-xl hover:bg-pink-600 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm shadow-pink-200 cursor-pointer"
               >
                 <Droplets className="w-3.5 h-3.5 fill-white" />
                 <span>Record Period on this Date</span>
@@ -339,30 +363,30 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
 
             <button
               onClick={() => onOpenLogForDate(selectedDateStr)}
-              className="px-3.5 py-2 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 text-xs font-bold text-[#321442] bg-[#F6F0FC] hover:bg-purple-100 rounded-xl transition-all flex items-center gap-1.5 border border-[#C8A2E8]/40 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-stone-600" />
-              <span>Log Symptoms & Mood</span>
+              <Plus className="w-3.5 h-3.5 text-[#7B2CBF]" />
+              <span>Log Symptoms & Pain</span>
             </button>
           </div>
         </div>
 
         {/* Selected Day Status Details */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs">
-            <span className="text-stone-500 block text-[11px]">Period Status:</span>
-            <span className="font-semibold text-stone-900 mt-0.5 block">
+          <div className="p-3 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40 text-xs">
+            <span className="text-stone-500 block text-[11px]">Period Flow Status:</span>
+            <span className="font-bold text-[#321442] mt-0.5 block">
               {selectedPrediction.isPeriod
-                ? `Active Flow (${selectedPrediction.flow || 'medium'})`
-                : selectedPrediction.isPredictedPeriod
-                ? 'Predicted Period (Estimate)'
+                ? `Recorded Flow (${selectedPrediction.flow || 'medium'})`
+                : selectedPrediction.isPredictedWindow
+                ? 'Predicted Period Window (Estimate)'
                 : 'No Period Flow'}
             </span>
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+          <div className="p-3 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40 text-xs">
             <span className="text-stone-500 block text-[11px]">Fertility Estimate:</span>
-            <span className="font-semibold text-stone-900 mt-0.5 block">
+            <span className="font-bold text-[#321442] mt-0.5 block">
               {selectedPrediction.isOvulation
                 ? 'Estimated Ovulation Day ✨'
                 : selectedPrediction.isFertile
@@ -371,43 +395,36 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             </span>
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs">
-            <span className="text-stone-500 block text-[11px]">Logged Daily Observations:</span>
-            <span className="font-semibold text-stone-900 mt-0.5 block">
+          <div className="p-3 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40 text-xs">
+            <span className="text-stone-500 block text-[11px]">Logged Symptoms & Pain:</span>
+            <span className="font-bold text-[#321442] mt-0.5 block">
               {selectedLog
-                ? `${selectedLog.symptoms.length} symptoms · ${selectedLog.moods.length} moods`
-                : 'No notes or symptoms logged'}
+                ? `${selectedLog.symptoms?.length || 0} symptoms · ${selectedLog.overallPain ? `${selectedLog.overallPain} pain` : 'mild'}`
+                : 'No symptoms logged'}
             </span>
           </div>
         </div>
 
         {/* Logged Notes / Symptoms Preview */}
         {selectedLog && (
-          <div className="p-3.5 bg-stone-50/80 rounded-xl border border-stone-200 text-xs space-y-2">
-            {selectedLog.symptoms.length > 0 && (
+          <div className="p-4 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40 text-xs space-y-2">
+            {selectedLog.symptoms && selectedLog.symptoms.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-stone-500 font-medium">Logged Symptoms:</span>
                 {selectedLog.symptoms.map(s => (
                   <span
                     key={s}
-                    className="px-2 py-0.5 bg-white rounded-md border border-stone-200 text-stone-700 capitalize font-medium"
+                    className="px-2 py-0.5 bg-white rounded-md border border-[#C8A2E8]/40 text-[#542080] capitalize font-semibold"
                   >
                     {s.replace('_', ' ')}
                   </span>
                 ))}
               </div>
             )}
-            {selectedLog.moods.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-stone-500 font-medium">Logged Moods:</span>
-                {selectedLog.moods.map(m => (
-                  <span
-                    key={m}
-                    className="px-2 py-0.5 bg-white rounded-md border border-stone-200 text-stone-700 capitalize font-medium"
-                  >
-                    {m}
-                  </span>
-                ))}
+            {selectedLog.medication && selectedLog.medication.taken && (
+              <div className="flex items-center gap-1.5 text-[#542080]">
+                <Clock className="w-3.5 h-3.5 text-[#7B2CBF]" />
+                <span>Medication taken: <strong>{selectedLog.medication.name}</strong></span>
               </div>
             )}
             {selectedLog.notes && (

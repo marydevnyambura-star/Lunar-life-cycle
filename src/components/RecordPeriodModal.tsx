@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Droplets, Check, Sparkles, AlertCircle, Clock, Info, ArrowRight } from 'lucide-react';
-import { FlowIntensity, Symptom, CycleRecord } from '../types';
-import { formatDateStr, parseDateStr, addDays, diffDays, formatDisplayDate } from '../utils/cycleCalculations';
+import {
+  X,
+  Calendar,
+  Droplets,
+  Check,
+  Sparkles,
+  AlertCircle,
+  Clock,
+  Info,
+  ArrowRight,
+  ShieldAlert,
+  Pill,
+  Heart
+} from 'lucide-react';
+import { FlowIntensity, Symptom, CycleRecord, PainSeverity } from '../types';
+import {
+  formatDateStr,
+  parseDateStr,
+  addDays,
+  diffDays,
+  formatDisplayDate
+} from '../utils/cycleCalculations';
 
 interface RecordPeriodModalProps {
   isOpen: boolean;
@@ -17,6 +36,8 @@ interface RecordPeriodModalProps {
     periodDuration: number;
     flow?: FlowIntensity;
     symptoms?: Symptom[];
+    painSeverity?: PainSeverity;
+    medications?: string[];
     notes?: string;
   }) => void;
 }
@@ -36,18 +57,11 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
   const [duration, setDuration] = useState<number>(defaultDuration || 5);
   const [flow, setFlow] = useState<FlowIntensity>('medium');
   const [symptoms, setSymptoms] = useState<Symptom[]>(['cramps']);
+  const [painSeverity, setPainSeverity] = useState<PainSeverity>('moderate');
+  const [medication, setMedication] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // Year and Month quick jump helpers for historical entry
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  // Initialize or reset when modal opens or editingCycle changes
   useEffect(() => {
     if (!isOpen) return;
 
@@ -65,7 +79,11 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
         setEndDate(computedEnd);
         setHasEnded(!editingCycle.isOngoing);
       }
-      setNotes('');
+      setFlow(editingCycle.flow || 'medium');
+      setSymptoms(editingCycle.symptoms || ['cramps']);
+      setPainSeverity(editingCycle.painSeverity || 'moderate');
+      setMedication(editingCycle.medications?.[0] || '');
+      setNotes(editingCycle.notes || '');
     } else {
       const initial = initialStartDate || currentDateStr;
       setStartDate(initial);
@@ -73,18 +91,18 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
       setDuration(defaultDur);
       const computedEnd = formatDateStr(addDays(parseDateStr(initial), defaultDur - 1));
       setEndDate(computedEnd);
-      // If it's a date in the past, it has likely ended
       const diff = diffDays(parseDateStr(currentDateStr), parseDateStr(initial));
       setHasEnded(diff >= defaultDur);
       setFlow('medium');
       setSymptoms(['cramps']);
+      setPainSeverity('moderate');
+      setMedication('');
       setNotes('');
     }
   }, [isOpen, editingCycle, initialStartDate, currentDateStr, defaultDuration]);
 
   if (!isOpen) return null;
 
-  // Handle Start Date change
   const handleStartDateChange = (newStart: string) => {
     setStartDate(newStart);
     setErrorMsg('');
@@ -95,7 +113,6 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
     }
   };
 
-  // Handle End Date change
   const handleEndDateChange = (newEnd: string) => {
     setEndDate(newEnd);
     setErrorMsg('');
@@ -113,7 +130,6 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
     }
   };
 
-  // Handle Duration change
   const handleDurationChange = (newDur: number) => {
     const validDur = Math.max(1, Math.min(16, newDur));
     setDuration(validDur);
@@ -124,20 +140,19 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
     }
   };
 
-  // Quick jump to month/year
-  const handleQuickMonthYear = (mIdx: number, yr: number) => {
-    const d = new Date(yr, mIdx, 15);
-    const dateStr = formatDateStr(d);
-    handleStartDateChange(dateStr);
-  };
-
   const symptomList: { id: Symptom; label: string; icon: string }[] = [
     { id: 'cramps', label: 'Cramps', icon: '⚡' },
-    { id: 'tender_breasts', label: 'Tender Breasts', icon: '🌸' },
+    { id: 'pelvic_pain', label: 'Pelvic Pain', icon: '🌸' },
+    { id: 'backache', label: 'Back Pain', icon: '🦴' },
+    { id: 'headache', label: 'Headache', icon: '🤕' },
     { id: 'bloating', label: 'Bloating', icon: '🫧' },
+    { id: 'tender_breasts', label: 'Breast Tenderness', icon: '💗' },
     { id: 'fatigue', label: 'Fatigue', icon: '🥱' },
-    { id: 'backache', label: 'Backache', icon: '🦴' },
-    { id: 'headache', label: 'Headache', icon: '🤕' }
+    { id: 'acne', label: 'Acne', icon: '✨' },
+    { id: 'nausea', label: 'Nausea', icon: '💫' },
+    { id: 'cravings', label: 'Cravings', icon: '🍫' },
+    { id: 'insomnia', label: 'Insomnia', icon: '🌙' },
+    { id: 'mood_swings', label: 'Mood Shifts', icon: '🎭' }
   ];
 
   const toggleSymptom = (s: Symptom) => {
@@ -169,21 +184,19 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
       periodDuration: duration,
       flow,
       symptoms,
+      painSeverity,
+      medications: medication.trim() ? [medication.trim()] : [],
       notes
     });
 
     onClose();
   };
 
-  const startObj = parseDateStr(startDate);
-  const startMonth = startObj.getMonth();
-  const startYear = startObj.getFullYear();
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-rose-100 overflow-hidden my-6">
+      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-[#C8A2E8]/40 overflow-hidden my-6">
         {/* Top Header */}
-        <div className="bg-gradient-to-r from-rose-500 via-rose-600 to-pink-500 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#542080] via-[#7B2CBF] to-[#EC4899] px-6 py-5 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
               <Droplets className="w-5 h-5 fill-white text-white" />
@@ -192,10 +205,10 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
               <h2 className="text-lg font-bold font-display tracking-tight text-white">
                 {editingCycle ? 'Edit Menstrual Period' : 'Record Menstrual Period'}
               </h2>
-              <p className="text-xs text-rose-100">
+              <p className="text-xs text-purple-100">
                 {editingCycle
-                  ? 'Update dates or duration for this recorded cycle'
-                  : 'Log present or past periods (any month or year) to calibrate predictions'}
+                  ? 'Update dates, flow, pain severity, or symptoms for this cycle'
+                  : 'Log present or historical periods to power intelligent cycle predictions'}
               </p>
             </div>
           </div>
@@ -208,43 +221,34 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+            <div className="p-3 bg-pink-50 border border-pink-200 text-pink-700 text-xs rounded-xl flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Quick Month & Year jump buttons for past periods */}
-          <div className="bg-stone-50 rounded-2xl p-3 border border-stone-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-2">
-              Quick Month Picker for Past Months:
+          {/* Quick Month Picker for Past Months */}
+          <div className="bg-[#F6F0FC] rounded-2xl p-3 border border-[#C8A2E8]/40">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#7B2CBF] block mb-2">
+              Quick Past Month Presets:
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
-                { label: 'Current Month', date: currentDateStr },
-                {
-                  label: 'September 2026',
-                  date: '2026-09-23'
-                },
-                {
-                  label: 'August 2026',
-                  date: '2026-08-26'
-                },
-                {
-                  label: 'July 2026',
-                  date: '2026-07-29'
-                }
+                { label: 'Today', date: currentDateStr },
+                { label: 'September 2026', date: '2026-09-23' },
+                { label: 'August 2026', date: '2026-08-26' },
+                { label: 'July 2026', date: '2026-07-29' }
               ].map(preset => (
                 <button
                   key={preset.label}
                   type="button"
                   onClick={() => handleStartDateChange(preset.date)}
-                  className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all cursor-pointer ${
                     startDate === preset.date
-                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                      : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
+                      ? 'bg-[#7B2CBF] text-white border-[#7B2CBF] shadow-xs'
+                      : 'bg-white border-[#C8A2E8]/40 text-[#542080] hover:bg-purple-100'
                   }`}
                 >
                   {preset.label}
@@ -255,37 +259,37 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
 
           {/* Section 1: Exact Start Date */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-rose-500" />
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442] flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#EC4899]" />
               <span>Period Start Date (Required)</span>
             </label>
-            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-2xl border border-stone-200">
+            <div className="flex items-center gap-3 p-3 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40">
               <input
                 type="date"
                 required
                 value={startDate}
                 onChange={e => handleStartDateChange(e.target.value)}
-                className="w-full bg-white px-3 py-2 rounded-xl border border-stone-200 text-sm font-mono font-medium text-stone-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full bg-white px-3 py-2 rounded-xl border border-[#C8A2E8]/40 text-sm font-mono font-bold text-[#321442] focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
               />
             </div>
             <p className="text-[11px] text-stone-500">
-              Selected: <span className="font-semibold text-stone-700">{formatDisplayDate(parseDateStr(startDate))}</span>
+              Selected: <span className="font-semibold text-[#542080]">{formatDisplayDate(parseDateStr(startDate))}</span>
             </p>
           </div>
 
           {/* Section 2: Period End Date & Duration */}
-          <div className="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-200">
+          <div className="space-y-3 p-4 bg-[#F6F0FC] rounded-2xl border border-[#C8A2E8]/40">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-rose-500" />
-                <span>Period End Date & Bleed Duration</span>
+              <label className="text-xs font-bold uppercase tracking-wider text-[#321442] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#7B2CBF]" />
+                <span>Bleed Duration & End Date</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-stone-600">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#542080]">
                 <input
                   type="checkbox"
                   checked={hasEnded}
                   onChange={e => setHasEnded(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500"
+                  className="rounded text-[#EC4899] focus:ring-[#EC4899]"
                 />
                 <span>Period has ended</span>
               </label>
@@ -301,7 +305,7 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
                     type="button"
                     onClick={() => handleDurationChange(duration - 1)}
                     disabled={duration <= 1}
-                    className="w-9 h-9 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 flex items-center justify-center font-bold text-stone-700 disabled:opacity-40"
+                    className="w-9 h-9 rounded-xl border border-[#C8A2E8]/40 bg-white hover:bg-purple-100 flex items-center justify-center font-bold text-[#542080] disabled:opacity-40 cursor-pointer"
                   >
                     -
                   </button>
@@ -311,17 +315,17 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
                     max="16"
                     value={duration}
                     onChange={e => handleDurationChange(parseInt(e.target.value) || 5)}
-                    className="w-16 text-center py-2 bg-white rounded-xl border border-stone-200 text-sm font-bold font-mono text-stone-900"
+                    className="w-16 text-center py-2 bg-white rounded-xl border border-[#C8A2E8]/40 text-sm font-bold font-mono text-[#321442]"
                   />
                   <button
                     type="button"
                     onClick={() => handleDurationChange(duration + 1)}
                     disabled={duration >= 16}
-                    className="w-9 h-9 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 flex items-center justify-center font-bold text-stone-700 disabled:opacity-40"
+                    className="w-9 h-9 rounded-xl border border-[#C8A2E8]/40 bg-white hover:bg-purple-100 flex items-center justify-center font-bold text-[#542080] disabled:opacity-40 cursor-pointer"
                   >
                     +
                   </button>
-                  <span className="text-xs text-stone-500">days</span>
+                  <span className="text-xs text-stone-500 font-medium">days</span>
                 </div>
               </div>
 
@@ -334,7 +338,7 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
                     type="date"
                     value={endDate}
                     onChange={e => handleEndDateChange(e.target.value)}
-                    className="w-full bg-white px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono font-medium text-stone-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    className="w-full bg-white px-3 py-2 rounded-xl border border-[#C8A2E8]/40 text-xs font-mono font-medium text-[#321442] focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
                   />
                 </div>
               )}
@@ -343,8 +347,8 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
 
           {/* Section 3: Flow Intensity */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-rose-500" />
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442] flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-[#EC4899]" />
               <span>Flow Intensity</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -362,10 +366,10 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
                     type="button"
                     key={item.id}
                     onClick={() => setFlow(item.id)}
-                    className={`py-2 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                    className={`py-2 px-2 rounded-2xl text-center border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-rose-50 border-rose-400 text-rose-700 ring-1 ring-rose-400 shadow-xs'
-                        : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
+                        ? 'bg-[#FCE7F3] border-[#EC4899] text-pink-700 ring-2 ring-pink-300 shadow-xs'
+                        : 'bg-white border-[#C8A2E8]/40 text-stone-700 hover:bg-purple-50'
                     }`}
                   >
                     <p className="text-xs font-bold">{item.label}</p>
@@ -376,12 +380,47 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
             </div>
           </div>
 
-          {/* Section 4: Symptoms */}
+          {/* Section 4: Pain Severity */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-stone-700">
-              Symptoms on Start Day
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442] flex items-center gap-2">
+              <Heart className="w-4 h-4 text-[#EC4899]" />
+              <span>Reported Pain Severity (Cramps, Headaches, Pelvic Pain)</span>
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 gap-2">
+              {(
+                [
+                  { id: 'none', label: 'None', desc: 'No pain' },
+                  { id: 'mild', label: 'Mild', desc: 'Manageable' },
+                  { id: 'moderate', label: 'Moderate', desc: 'Noticeable' },
+                  { id: 'severe', label: 'Severe', desc: 'Disruptive' }
+                ] as const
+              ).map(p => {
+                const isSelected = painSeverity === p.id;
+                return (
+                  <button
+                    type="button"
+                    key={p.id}
+                    onClick={() => setPainSeverity(p.id)}
+                    className={`py-2 px-2 rounded-2xl text-center border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-100 border-[#7B2CBF] text-[#542080] ring-2 ring-purple-300 shadow-xs'
+                        : 'bg-white border-[#C8A2E8]/40 text-stone-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <p className="text-xs font-bold">{p.label}</p>
+                    <p className="text-[10px] text-stone-400 mt-0.5">{p.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 5: Symptoms Checklist */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442]">
+              Symptoms Observed
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {symptomList.map(sym => {
                 const isSelected = symptoms.includes(sym.id);
                 return (
@@ -389,28 +428,73 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
                     key={sym.id}
                     type="button"
                     onClick={() => toggleSymptom(sym.id)}
-                    className={`py-2 px-2 rounded-xl text-center border text-xs font-medium transition-all cursor-pointer ${
+                    className={`py-2 px-2 rounded-2xl text-center border text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-rose-50 border-rose-300 text-rose-800 ring-1 ring-rose-300'
-                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                        ? 'bg-[#FCE7F3] border-[#EC4899] text-[#321442] ring-1 ring-pink-300'
+                        : 'bg-white border-[#C8A2E8]/40 text-stone-600 hover:bg-purple-50'
                     }`}
                   >
                     <span className="text-base block mb-0.5">{sym.icon}</span>
-                    <span className="text-[11px] font-semibold">{sym.label}</span>
+                    <span className="text-[11px] leading-tight block">{sym.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Section 5: Real-time Calculation Preview */}
-          <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-200 text-xs space-y-1.5">
-            <div className="flex items-center gap-1.5 font-bold text-rose-900">
-              <Sparkles className="w-4 h-4 text-rose-600" />
-              <span>Cycle Recalculation Notice</span>
+          {/* Section 6: Pain Relief / Medication Taken */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442] flex items-center gap-2">
+              <Pill className="w-4 h-4 text-[#7B2CBF]" />
+              <span>Medication or Pain Relief Taken (Optional)</span>
+            </label>
+            <div className="flex gap-2 flex-wrap mb-1.5">
+              {['Ibuprofen', 'Paracetamol', 'Naproxen', 'Heat Therapy', 'Herbal Tea'].map(med => (
+                <button
+                  key={med}
+                  type="button"
+                  onClick={() => setMedication(med)}
+                  className={`text-[11px] px-2.5 py-1 rounded-xl border transition-all cursor-pointer ${
+                    medication === med
+                      ? 'bg-[#7B2CBF] text-white border-[#7B2CBF]'
+                      : 'bg-white border-[#C8A2E8]/40 text-stone-700 hover:bg-purple-50'
+                  }`}
+                >
+                  {med}
+                </button>
+              ))}
             </div>
-            <p className="text-stone-700">
-              Recording this period starting on <strong className="text-stone-900">{startDate}</strong> will automatically calculate the cycle length (days to the next period) and dynamically update your personal average cycle length and future predicted dates.
+            <input
+              type="text"
+              placeholder="e.g., Ibuprofen 400mg, Hot water bottle..."
+              value={medication}
+              onChange={e => setMedication(e.target.value)}
+              className="w-full bg-[#F6F0FC] px-3.5 py-2 rounded-xl border border-[#C8A2E8]/40 text-xs text-[#321442] focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
+            />
+          </div>
+
+          {/* Section 7: Notes on Unusual Changes */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-[#321442]">
+              Notes on Unusual Changes in Cycle
+            </label>
+            <textarea
+              rows={2}
+              placeholder="Any notable changes, travel, high stress, or biological observations..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              className="w-full bg-[#F6F0FC] px-3.5 py-2 rounded-xl border border-[#C8A2E8]/40 text-xs text-[#321442] focus:outline-none focus:ring-2 focus:ring-[#7B2CBF]"
+            />
+          </div>
+
+          {/* Section 8: Real-time Calculation Notice */}
+          <div className="p-4 bg-purple-50/80 rounded-2xl border border-purple-200/80 text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold text-[#542080]">
+              <Sparkles className="w-4 h-4 text-[#EC4899]" />
+              <span>Intelligent Recalculation Notice</span>
+            </div>
+            <p className="text-stone-700 text-[11px] leading-relaxed">
+              Recording this period starting on <strong className="text-[#321442]">{startDate}</strong> will automatically calculate the cycle length to the next period, update your personal average cycle length and variability window, and calibrate future predictions.
             </p>
           </div>
 
@@ -425,7 +509,7 @@ export const RecordPeriodModal: React.FC<RecordPeriodModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 active:scale-[0.98] transition-all shadow-sm shadow-rose-200 cursor-pointer flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#542080] via-[#7B2CBF] to-[#EC4899] text-white text-xs font-bold hover:brightness-105 active:scale-[0.98] transition-all shadow-md shadow-purple-300/60 cursor-pointer flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
               <span>{editingCycle ? 'Update Period Record' : 'Save Period Record'}</span>
